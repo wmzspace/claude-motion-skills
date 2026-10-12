@@ -31,6 +31,15 @@ def render_frames(P, f0, f1, workers, extra):
     if any(p.wait() for p in procs): sys.exit('render worker failed')
     print(f'rendered {f1 - f0} frames in {time.time() - t0:.0f}s')
 
+def stale(P, d):
+    """True when the page (index.html / engine.js / any .js next to it) changed after the oldest frame in folder d was rendered."""
+    fs = [os.path.join(P, d, f) for f in os.listdir(os.path.join(P, d))] if os.path.isdir(os.path.join(P, d)) else []
+    if not fs: return False
+    src = max(os.path.getmtime(os.path.join(P, f)) for f in os.listdir(P) if f.endswith(('.html', '.js')))
+    return src > min(os.path.getmtime(f) for f in fs)
+def clear(P, d):
+    for f in os.listdir(os.path.join(P, d)): os.remove(os.path.join(P, d, f))
+
 def make_audio(P):
     wav = P + '/audio.wav'
     if os.path.exists(P + '/audio.py') and (not os.path.exists(wav) or os.path.getmtime(wav) < os.path.getmtime(P + '/audio.py')):
@@ -111,13 +120,16 @@ def main():
         return qa(P, I, video)
     if a.mode == 'preview':
         pf = a.preview_fps; n = int(round(dur * pf))
-        if a.force and os.path.isdir(P + '/preview'):
-            for f in os.listdir(P + '/preview'): os.remove(os.path.join(P, 'preview', f))
+        if a.force or stale(P, 'preview'):
+            if os.path.isdir(P + '/preview'): clear(P, 'preview')
         render_frames(P, 0, n, a.workers, ['--fps', str(pf), '--samples', '1', '--dir', 'preview'])
         out = P + '/preview.mp4'; encode(P, 'preview', pf, 0, n, out, 4000, 0, make_audio(P))
         print(f'preview: {out}  (draft: {pf} fps, no motion blur — judge rhythm, layout and colour, not smoothness)'); return qa(P, I, out)
     f0, f1 = a.range or (0, total)
-    if a.mode == 'render': render_frames(P, f0, f1, a.workers, ['--force'] if a.force else [])
+    if a.mode == 'render':
+        if not a.force and stale(P, 'frames'):
+            sys.exit('frames/ is older than index.html — earlier frames would be reused. Re-run with --force (re-render everything) or delete the frames of the shots you changed.')
+        render_frames(P, f0, f1, a.workers, ['--force'] if a.force else [])
     missing = [f for f in range(f0, f1) if not os.path.exists(f'{P}/frames/{f:05d}.png')]
     if missing: sys.exit(f'{len(missing)} frames missing (first {missing[0]}); run render first')
     wav = make_audio(P); secs = (f1 - f0) / fps; kbps = int(min(16000, max(1500, (a.max_mb * 8 * 1024 * .94) / secs - 256)))

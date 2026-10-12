@@ -11,8 +11,8 @@ All times are in seconds — copy them straight from the shot table so sound and
 note(s) = frequency s semitones from A4 (440 Hz).  D major from D5: 5 7 9 10 12 14 16 17.
 chord('Dm9', octave=3) -> list of Hz;  scale('E', 'dorian', octave=4) -> 8 notes;  MODES lists the modes.
 
-Timbres: pad (soft bed), bell (FM), pluck (Karplus-Strong string), lead (band-limited saw), sub (808-style),
-kick / snare / clap / hat / tick, boom / riser / whoosh, vinyl (crackle + hiss).  Patterns: beat (with swing), arp, typing.
+Timbres: pad (soft bed), piano (additive), bell (FM), pluck (Karplus-Strong string), lead (band-limited saw), sub (808-style),
+kick / snare / clap / hat / tick, boom / riser / whoosh, vinyl (crackle + hiss).  Patterns: beat (with swing), arp, typing, chord_hit.
 Pick a sound palette per video from the brief — don't default to pad + bell + kick every time.
 """
 import numpy as np, wave, re
@@ -89,6 +89,22 @@ class Mix:
         for i in range(P, n, P):
             j = min(n, i + P); prev = y[i - P:j - P]; prev2 = np.concatenate([[y[i - P - 1] if i - P - 1 >= 0 else 0], prev[:-1]]); y[i:j] = g * 2 * .5 * (prev + prev2)
         y *= amp / (np.abs(y).max() + 1e-9); self._add(self.wet, t0, y * (.75 - .5 * pan), y * (.75 + .5 * pan))
+    def piano(self, t0, f, amp=0.1, dur=2.0, pan=0.0):
+        """Simple additive piano: slightly stretched partials, faster decay for higher ones, soft hammer."""
+        n = int(self.sr * dur); tt = np.arange(n) / self.sr; s = np.zeros(n)
+        for k in range(1, 10):
+            fk = f * k * np.sqrt(1 + .0004 * k * k)
+            if fk > 11000: break
+            s += np.sin(2 * np.pi * fk * tt + k) / k ** 1.15 * np.exp(-tt * (.9 + .75 * k) * (f / 262) ** .35)
+        s *= np.clip(tt / .002, 0, 1) * np.clip((dur - tt) / .08, 0, 1)
+        h = min(n, int(self.sr * .012)); s[:h] += self._noise(h, 3000, .8) * .15 * np.exp(-np.arange(h) / h * 4)
+        s *= amp / (np.abs(s).max() + 1e-9); self._add(self.wet, t0, s * (.75 - .5 * pan), s * (.75 + .5 * pan))
+    def chord_hit(self, t0, freqs, voice='piano', amp=0.07, dur=1.6, spread=0.012):
+        """Play a chord (list of Hz) with a tiny strum; voice: piano | pluck | bell."""
+        for i, f in enumerate(freqs):
+            fn = {'piano': lambda tt, ff: self.piano(tt, ff, amp, dur, (i / max(1, len(freqs) - 1) - .5) * .6),
+                  'pluck': lambda tt, ff: self.pluck(tt, ff, amp, dur * .6), 'bell': lambda tt, ff: self.bell(tt, ff, amp, dur * .6)}[voice]
+            fn(t0 + i * spread, f)
     def lead(self, t0, f, dur=0.4, amp=0.06, cutoff=3000, pan=0.0, vib=0.0):
         """Band-limited saw lead (synthwave / chiptune-ish when cutoff is low)."""
         tt = np.arange(int(self.sr * dur)) / self.sr; fr = f * (1 + vib * np.sin(2 * np.pi * 5.5 * tt)); ph = 2 * np.pi * np.cumsum(fr) / self.sr
@@ -137,13 +153,15 @@ class Mix:
     def typing(self, t0, t1, n, amp=0.03):
         for k in range(n): self.tick(t0 + (t1 - t0) * k / max(1, n), amp)
     # ---- master ----
-    def render(self, path='audio.wav', reverb=0.30, fade_in=0.05, fade_out=0.4, peak=0.84):
+    def render(self, path='audio.wav', reverb=0.30, fade_in=0.05, fade_out=0.4, peak=0.84, rms=0.16):
+        """Mix down. rms: target loudness before the soft limiter (0.16 ≈ -14 LUFS); None keeps the old peak-only normalisation."""
         sr, N = self.sr, self.N; ir_n = int(sr * 2.4); it = np.arange(ir_n) / sr; out = []
         for ch in (0, 1):
             ir = self.rs.randn(ir_n) * np.exp(-it * 2.6); ir[:int(sr * .012)] = 0; ir /= np.sqrt((ir ** 2).sum())
             M = 1 << (N + ir_n - 2).bit_length(); rev = np.fft.irfft(np.fft.rfft(self.wet[ch], M) * np.fft.rfft(ir, M), M)[:N]
             out.append(self.wet[ch] * .8 + rev * reverb + self.dry[ch])
         y = np.stack(out, 1); t = self.t; y *= (np.clip(t / max(fade_in, 1e-3), 0, 1) * np.clip((self.T - t) / max(fade_out, 1e-3), 0, 1) ** 1.5)[:, None]
-        y = np.tanh(y * 1.4) / 1.4; y *= peak / (np.abs(y).max() + 1e-9)
+        if rms: y *= rms / (np.sqrt((y ** 2).mean()) + 1e-9); y = np.tanh(y / peak) * peak
+        else: y = np.tanh(y * 1.4) / 1.4; y *= peak / (np.abs(y).max() + 1e-9)
         w = wave.open(path, 'wb'); w.setnchannels(2); w.setsampwidth(2); w.setframerate(sr); w.writeframes((y * 32767).astype('<i2').tobytes()); w.close()
         print(f'{path}: {self.T:.2f}s peak {np.abs(y).max():.2f} rms {np.sqrt((y ** 2).mean()):.3f}  (aim rms 0.15–0.20; check with: ffmpeg -i {path} -af ebur128 -f null -)')

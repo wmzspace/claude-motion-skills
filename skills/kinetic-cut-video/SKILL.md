@@ -22,7 +22,7 @@ description: 制作"卡点快剪"风格的短动效视频（片头、开场、�
 | `scripts/render.mjs` | Playwright 渲染：`info` / `stills` / `frames` |
 | `scripts/build.py` | 抽帧联系表、并行渲染（可续渲）、配乐、编码、成片联系表 |
 | `scripts/brief.py` | 创意方向抽签：美术风格、配色、字体、节奏结构、BPM、配乐风格、调式、运镜、转场、后期质感、文案语气、开场、收尾、装饰层各抽一项 |
-| `scripts/audio_lib.py` | numpy 合成器：pad / bell / pluck / lead / sub / kick / snare / clap / hat / tick / boom / riser / whoosh / vinyl；`chord()` `scale()`、`beat(pattern, swing)`、`arp()` |
+| `scripts/audio_lib.py` | numpy 合成器：pad / piano / bell / pluck / lead / sub / kick / snare / clap / hat / tick / boom / riser / whoosh / vinyl；`chord()` `scale()`、`beat(pattern, swing)`、`arp()`、`chord_hit()`；`render(rms=)` 按目标响度混音 |
 
 ## 流程
 
@@ -93,7 +93,7 @@ nohup python3 <skill>/scripts/build.py <工程目录> render > <工程目录>/bu
 # 轮询（单条命令不要超过 10 分钟）：
 for i in $(seq 1 55); do grep -qE "video:|failed|missing|Error" <工程目录>/build.log && break; sleep 10; done; tail -5 <工程目录>/build.log
 ```
-- 按 CPU 核数并行，已渲染的帧会跳过，中断后重跑同一命令即可续渲；改了某个镜头就删掉对应帧号的 PNG 或加 `--force`。
+- 按 CPU 核数并行，已渲染的帧会跳过，中断后重跑同一命令即可续渲。改了页面后再渲染时，如果 `frames/` 比 `index.html` 旧，脚本会停下提醒：加 `--force` 全部重渲，或删掉改动镜头对应帧号的 PNG。预览遇到这种情况会自动重渲。
 - 速度约 0.6–1.5 秒/帧；20 秒成片在 2 核机器上约 10–15 分钟。
 - 输出 `out.mp4` + `qa_sheet.jpg`（每半秒一帧）+ `qa_report.txt`（同预览的质检，只是对成片再跑一次）。默认把文件压到 28MB 以内（`--max-mb`）；`--grain 0` 关颗粒；`--range A B` 只出某段帧；只改了配乐用 `encode` 模式重新合成。
 
