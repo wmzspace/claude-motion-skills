@@ -33,7 +33,7 @@
 - 渐变背景、圆角卡片、线条图标都由脚本生成，主题配色每次按内容现定
 - 上浮、滑入、缩放、擦除、强调脉冲、**沿路径移动**；还能嵌自动播放的背景音乐
 - 动画是写进 PPT XML 的 `<p:timing>`，不是视频——用户之后照样能改字
-- 示例文件：[`examples/deckkit-demo.pptx`](examples/deckkit-demo.pptx)（下载后放映看动画）
+- 示例文件：[`examples/deckkit-demo.pptx`](https://github.com/wmzspace/claude-motion-skills/releases/download/v1.0.0/deckkit-demo.pptx)（下载后放映看动画）
 
 ### 🎬 kinetic-cut-video — 卡点快剪动效视频
 
@@ -59,10 +59,10 @@
 
 ```text
 /plugin marketplace add wmzspace/claude-motion-skills
-/plugin install motion-skills@claude-motion-skills
+/plugin install kinetic-skills@claude-motion-skills
 ```
 
-装好后直接说「帮我做一个有动画的汇报 PPT」「做个 20 秒的炫酷自我介绍视频」「用动画解释一下这个训练流程」，Claude 会自动调用对应 skill；也可以显式输入 `/motion-skills:animation-html <主题>`。
+装好后直接说「帮我做一个有动画的汇报 PPT」「做个 20 秒的炫酷自我介绍视频」「用动画解释一下这个训练流程」，Claude 会自动调用对应 skill；也可以显式输入 `/kinetic-skills:animation-html <主题>`。
 
 ### 手动安装
 

@@ -126,7 +126,8 @@ ffmpeg -y -loglevel error -pattern_type glob -i 'slide-*.jpg' -vf "tile=4x5" -fr
 ```bash
 cp <本 skill 目录>/scripts/* .            # 复制到工作目录
 cp theme.example.json theme.json          # 然后按本次主题改
-NODE_PATH=$(npm root -g) node assets.js   # 需要 playwright；环境里已有 Chromium 时不要再执行 playwright install
+npm root -g                               # 先查出全局 node_modules 路径
+NODE_PATH=<上一步输出的路径> node assets.js   # 需要 playwright；环境里已有 Chromium 时不要再执行 playwright install
 python3 build.py                          # 自己写的搭建脚本，写法参考 demo.py
 ```
 

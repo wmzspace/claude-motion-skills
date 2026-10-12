@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "motion-skills",
+      "name": "kinetic-skills",
       "source": "./",
       "description": "animated-native-pptx · kinetic-cut-video · animation-html"
     }

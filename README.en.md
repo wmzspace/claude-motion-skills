@@ -34,7 +34,7 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 
 - Rise, slide, zoom, wipe, pulse and **motion-path** animations, transitions, and auto-playing background music
 - The animations are real `<p:timing>` XML, not embedded video, so the text stays editable
-- Sample deck: [`examples/deckkit-demo.pptx`](examples/deckkit-demo.pptx) (download it and start the slideshow)
+- Sample deck: [`examples/deckkit-demo.pptx`](https://github.com/wmzspace/claude-motion-skills/releases/download/v1.0.0/deckkit-demo.pptx) (download it and start the slideshow)
 
 ### 🎬 kinetic-cut-video
 
@@ -58,7 +58,7 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 
 ```text
 /plugin marketplace add wmzspace/claude-motion-skills
-/plugin install motion-skills@claude-motion-skills
+/plugin install kinetic-skills@claude-motion-skills
 ```
 
 **Manual:**

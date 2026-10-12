@@ -38,7 +38,7 @@ def main():
     if missing: sys.exit(f'{len(missing)} frames missing (first {missing[0]}); run render first')
     wav = P + '/audio.wav'
     if os.path.exists(P + '/audio.py') and (not os.path.exists(wav) or os.path.getmtime(wav) < os.path.getmtime(P + '/audio.py')):
-        sh([sys.executable, 'audio.py'], cwd=P, env={**os.environ, 'PYTHONPATH': HERE + os.pathsep + os.environ.get('PYTHONPATH', '')})
+        sh([sys.executable, '-c', 'import sys, runpy; sys.path.insert(0, sys.argv[1]); runpy.run_path("audio.py", run_name="__main__")', HERE], cwd=P)
     secs = (f1 - f0) / fps; kbps = int(min(16000, max(1500, (a.max_mb * 8 * 1024 * .94) / secs - 256)))
     cmd = ['ffmpeg', '-y', '-loglevel', 'error', '-framerate', str(fps), '-start_number', str(f0), '-i', P + '/frames/%05d.png']
     if os.path.exists(wav): cmd += ['-ss', f'{f0 / fps:.4f}', '-i', wav]
