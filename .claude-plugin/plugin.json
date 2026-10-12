@@ -1,0 +1,12 @@
+{
+  "name": "motion-skills",
+  "version": "1.0.0",
+  "description": "Make things move: editable PPTX with native animations, 1080p60 kinetic-cut videos rendered frame by frame, and single-file animated explainer pages.",
+  "author": {
+    "name": "wmzspace"
+  },
+  "homepage": "https://github.com/wmzspace/claude-motion-skills",
+  "repository": "https://github.com/wmzspace/claude-motion-skills",
+  "license": "MIT",
+  "keywords": ["skills", "pptx", "animation", "motion-graphics", "video", "kinetic-typography", "explainer"]
+}

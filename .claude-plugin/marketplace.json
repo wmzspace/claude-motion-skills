@@ -1,0 +1,14 @@
+{
+  "name": "claude-motion-skills",
+  "description": "Motion skills for Claude: animated native PPTX, kinetic-cut videos, and step-by-step animated explainer pages.",
+  "owner": {
+    "name": "wmzspace"
+  },
+  "plugins": [
+    {
+      "name": "motion-skills",
+      "source": "./",
+      "description": "animated-native-pptx · kinetic-cut-video · animation-html"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+# generated when running the demos in place
+skills/animated-native-pptx/scripts/assets/
+skills/animated-native-pptx/scripts/theme.json
+skills/animated-native-pptx/scripts/*.pptx
+frames/
+stills/
+*.wav
+*.mp4

@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* 布局：标题 → 分组步骤条 → 主舞台（步骤名 + 要点 + 画面 + 播放条 + 旁白）→ 关键数字表。全部颜色走 token。 */
+:root{
+  --bg:#F2F5F7; --panel:#FFFFFF; --ink:#15212C; --muted:#5D6A77; --grid:#DCE3E9; --off:#AAB4BE; --soft:#E9EEF2;
+  --opt:#1F6FA8; --det:#6A4C93; --ele:#C8711F; --new:#0F7F7A; --bad:#D7263D; --good:#1B8A5A; --beam:#3FA34D;
+  --optbg:#E6F0F8; --detbg:#F2EDF8; --elebg:#FCF3E7; --newbg:#E3F3F1;
+  --sans:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1318; --panel:#141C23; --ink:#E5ECF1; --muted:#93A1AD; --grid:#25313B; --off:#4B5964; --soft:#1B252E;
+  --opt:#6FB0E6; --det:#B39BDB; --ele:#F0A85A; --new:#3CC6BC; --bad:#FF5C6E; --good:#4CC38A; --beam:#7BD389;
+  --optbg:#132331; --detbg:#1E1828; --elebg:#2A1F12; --newbg:#0F2623; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1318; --panel:#141C23; --ink:#E5ECF1; --muted:#93A1AD; --grid:#25313B; --off:#4B5964; --soft:#1B252E;
+  --opt:#6FB0E6; --det:#B39BDB; --ele:#F0A85A; --new:#3CC6BC; --bad:#FF5C6E; --good:#4CC38A; --beam:#7BD389;
+  --optbg:#132331; --detbg:#1E1828; --elebg:#2A1F12; --newbg:#0F2623; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:grid;gap:20px}
+header h1{font-size:25px;margin:0 0 6px;text-wrap:balance;letter-spacing:.01em}
+header p{margin:0;color:var(--muted);max-width:74ch}
+.stepper{display:flex;gap:16px;overflow-x:auto;padding-bottom:4px}
+.grp{display:grid;gap:6px;flex:0 0 auto}
+.grp .gl{font-size:12px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+.grp .row{display:flex;gap:4px}
+.st{font:inherit;cursor:pointer;border:0;background:none;padding:0;display:grid;justify-items:center;gap:4px;width:86px;color:var(--muted)}
+.st .bar{height:4px;width:100%;border-radius:2px;background:var(--grid);overflow:hidden;position:relative}
+.st .bar i{position:absolute;inset:0;width:0;background:var(--new)}
+.st .nm{font-size:12px;line-height:1.3;text-align:center}
+.st.done .bar i{width:100%;background:var(--off)}
+.st.on{color:var(--ink);font-weight:700}
+.st:hover .nm{color:var(--ink)}
+.stage{background:var(--panel);border:1px solid var(--grid);border-radius:14px;overflow:hidden}
+.shead{padding:16px 22px 4px;display:grid;gap:2px}
+.shead .idx{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.shead h2{font-size:21px;margin:0;text-wrap:balance}
+.shead .key{margin:2px 0 0;color:var(--muted);font-size:15px}
+.scroll{overflow-x:auto}
+svg#svg{display:block;width:100%;min-width:680px;height:auto}
+.player{display:flex;align-items:center;gap:10px;padding:10px 22px;border-top:1px solid var(--grid);background:var(--soft)}
+.player button{font:inherit;font-size:14px;cursor:pointer;border-radius:8px;border:1px solid var(--grid);background:var(--panel);color:var(--ink);padding:6px 12px;white-space:nowrap}
+.player button:disabled{opacity:.35;cursor:default}
+.player #play{background:var(--ink);color:var(--panel);border-color:var(--ink);min-width:88px}
+.player input[type=range]{flex:1;min-width:120px;accent-color:var(--new)}
+.tnum{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);min-width:9ch;text-align:right}
+.narr{margin:0;padding:16px 22px 6px;font-size:17px;line-height:1.85;min-height:5.8em;max-width:78ch}
+.narr b{color:var(--new)}
+.narr em{font-style:normal;color:var(--bad);font-weight:700}
+.sfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:4px 22px 16px;font-size:13px;color:var(--muted)}
+.sfoot label{display:inline-flex;align-items:center;gap:6px}
+.sfoot select{font:inherit}
+details.more{padding:0 22px 14px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+details.more p{margin:6px 0 0;font-size:14px;color:var(--muted);max-width:78ch}
+.kbd{font-family:var(--mono);font-size:12px;border:1px solid var(--grid);border-radius:4px;padding:0 5px;background:var(--panel)}
+.ref{background:var(--panel);border:1px solid var(--grid);border-radius:14px;padding:6px 22px}
+.ref summary{font-size:15px;color:var(--ink);font-weight:700;padding:10px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-bottom:12px}
+th,td{border-bottom:1px solid var(--grid);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:500}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ref .note{font-size:13px;color:var(--muted);margin:0 0 12px}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--new);outline-offset:2px}
+@media (max-width:560px){.narr{font-size:16px}header h1{font-size:21px}.player{flex-wrap:wrap;padding-inline:16px}.player input[type=range]{order:5;flex-basis:100%}.lbl,.hint{display:none}.tnum{flex:1}.shead,.narr,.sfoot,details.more{padding-inline:16px}}
+svg text{font-family:var(--sans);fill:var(--ink)}
+svg .mono{font-family:var(--mono)}
+
+/* 全屏：只放舞台，画面按比例撑满 */
+.stage:fullscreen{display:flex;flex-direction:column;border:0;border-radius:0;overflow-y:auto;background:var(--panel)}
+.stage:fullscreen .scroll{flex:1 1 auto;min-height:0;overflow:hidden}
+.stage:fullscreen svg#svg{width:100%;height:100%;min-width:0}
+.stage:fullscreen details.more{display:none}
+.stage:-webkit-full-screen{display:flex;flex-direction:column;width:100%;height:100%;background:var(--panel)}
+.stage:-webkit-full-screen .scroll{flex:1 1 auto;min-height:0;overflow:hidden}
+.stage:-webkit-full-screen svg#svg{width:100%;height:100%;min-width:0}
+
+/* 网页编辑器 */
+#edpanel{position:fixed;top:12px;right:12px;bottom:12px;width:330px;overflow:auto;z-index:20;background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.14);display:grid;gap:10px;align-content:start}
+#edpanel[hidden]{display:none}
+body.editing .wrap{margin-right:356px}
+#edpanel section{border-top:1px solid var(--grid);padding-top:8px}
+#edpanel h3{font-size:13px;margin:0 0 4px;color:var(--muted);letter-spacing:.04em}
+.edtop{display:flex;gap:4px;align-items:center}.edtop .sp{flex:1}
+.edbar{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+#edpanel button{font:inherit;font-size:12.5px;cursor:pointer;border:1px solid var(--grid);background:var(--soft);color:var(--ink);border-radius:6px;padding:3px 8px}
+#edpanel button.pri{background:var(--new);border-color:var(--new);color:var(--panel)}
+#edpanel button.warn{color:var(--bad)}
+#edpanel label.f{display:grid;grid-template-columns:4.8em 1fr;align-items:center;gap:6px;margin:4px 0}
+#edpanel input[type=text],#edpanel input[type=number],#edpanel textarea{font:inherit;font-size:13px;width:100%;padding:3px 6px;border:1px solid var(--grid);border-radius:5px;background:var(--bg);color:var(--ink)}
+#edpanel textarea{resize:vertical;min-height:2.4em}
+.sw{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+#edpanel .sw button{width:20px;height:20px;padding:0;border-radius:50%}
+#edpanel .sw button.on{outline:2px solid var(--ink);outline-offset:1px}
+#edpanel .sw button.none{background:linear-gradient(135deg,transparent 45%,var(--bad) 45%,var(--bad) 55%,transparent 55%),var(--panel)}
+.sw input[type=color]{width:24px;height:22px;padding:0;border:0;background:none}
+.caprow{display:grid;grid-template-columns:4em 1fr auto;gap:4px;align-items:start;margin:4px 0}
+.edhint{color:var(--muted);margin:0;font-size:12px}
+.st.hid .nm{text-decoration:line-through;opacity:.6}
+.player #edit.on{background:var(--new);color:var(--panel);border-color:var(--new)}
+body.editing svg#svg{user-select:none;-webkit-user-select:none}
+body.editing #fg *{cursor:move}
+.ed-sel{fill:none;stroke:var(--new);stroke-width:1.2;stroke-dasharray:4 3;pointer-events:none}
+.ed-h{fill:var(--panel);stroke:var(--new);stroke-width:1.5;cursor:nwse-resize}
+#edtoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:6px 14px;border-radius:8px;font-size:13px;z-index:30;opacity:0;transition:opacity .2s;pointer-events:none}
+#edbanner{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--newbg);border:1px solid var(--new);border-radius:10px;padding:8px 14px;font-size:14px}
+#edbanner button{font:inherit;font-size:13px;cursor:pointer;border:1px solid var(--grid);background:var(--panel);color:var(--ink);border-radius:6px;padding:2px 10px}
+@media (max-width:1000px){body.editing .wrap{margin-right:auto;padding-bottom:50vh}#edpanel{top:auto;left:8px;right:8px;width:auto;max-height:46vh}}
+
+/* ===== UI 精修与放映模式（2026-10-11） ===== */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+input[type=range]{accent-color:var(--new)}
+.stepper{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);padding-right:48px;scroll-behavior:smooth}
+.st .bar{height:5px;border-radius:3px}
+.stage{box-shadow:0 1px 2px rgba(16,24,32,.04),0 8px 24px rgba(16,24,32,.06)}
+.shead{padding:20px 26px 6px}
+.shead h2{font-size:22px;line-height:1.35}
+.player{gap:8px;padding:10px 18px}
+.player button{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 12px;transition:background .15s,border-color .15s,color .15s}
+.player button:hover:not(:disabled){border-color:var(--off)}
+.player button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.player #play{width:40px;height:40px;min-width:0;padding:0;border-radius:50%}
+.player #play svg{width:16px;height:16px}
+.player #play svg .f{fill:currentColor;stroke:none}
+.player .spd{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap}
+.player .spd input{width:96px!important}
+.narr{font-size:18px;padding:18px 26px 8px}
+.sfoot{padding:4px 26px 16px}
+details.more{padding:0 26px 14px}
+.fsprog,.fscount,.fshint{display:none}
+@keyframes ui2in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.stage.swap .shead,.stage.swap .narr{animation:ui2in .32s ease-out backwards}
+.stage.swap svg#svg{animation:ui2in .32s ease-out backwards}
+@media (prefers-reduced-motion: reduce){.stage.swap .shead,.stage.swap .narr,.stage.swap svg#svg{animation:none}}
+@media (max-width:560px){.player .spd{order:4}.player .spd input{width:72px!important}.shead,.narr,.sfoot,details.more{padding-inline:16px}}
+
+/* 放映模式：像幻灯片放映一样只留画面、标题与字幕；控件在鼠标移动时浮出，静止 2 秒后隐去 */
+.stage.is-fs{display:grid;grid-template-rows:auto minmax(0,1fr) auto;width:100vw;height:100vh;border:0;border-radius:0;box-shadow:none;background:var(--panel);position:relative;overflow:hidden}
+.stage.is-fs .shead{padding:clamp(30px,5vh,64px) clamp(32px,6vw,120px) 0;gap:8px;max-width:none}
+.stage.is-fs .shead .idx{font-size:clamp(12px,.8vw,15px);letter-spacing:.08em}
+.stage.is-fs .shead h2{font-size:clamp(26px,2.5vw,48px);line-height:1.25;max-width:44ch}
+.stage.is-fs .shead .key{font-size:clamp(16px,1.3vw,24px);max-width:70ch}
+.stage.is-fs .scroll{min-height:0;overflow:hidden;padding:clamp(8px,2vh,28px) clamp(24px,5vw,96px)}
+.stage.is-fs svg#svg{width:100%;height:100%;min-width:0;cursor:pointer}
+.stage.is-fs .narr{margin:0 auto;max-width:min(62ch,86vw);min-height:0;text-align:center;font-size:clamp(19px,1.6vw,32px);line-height:1.6;padding:0 32px clamp(30px,5.5vh,64px);transition:transform .28s ease}
+.stage.is-fs.ui-on .narr,.stage.is-fs:has(.player :focus-visible) .narr{transform:translateY(-76px)}
+.stage.is-fs .narr{width:100%;box-sizing:border-box}   /* 放映时字幕框宽度固定，不随文字长短收缩 */
+.stage.is-fs details.more,.stage.is-fs .sfoot{display:none}
+.stage.is-fs .player{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);width:min(1040px,calc(100% - 48px));border:1px solid var(--grid);border-radius:18px;padding:10px 14px;
+  background:color-mix(in srgb,var(--panel) 82%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 16px 48px rgba(0,0,0,.22);transition:opacity .25s ease,transform .25s ease;z-index:6}
+.stage.is-fs:not(.ui-on) .player:not(:has(:focus-visible)){opacity:0;transform:translate(-50%,14px);pointer-events:none}
+.stage.is-fs .player .lbl{display:none}
+.stage.is-fs .player button{background:transparent;border-color:transparent}
+.stage.is-fs .player button:hover:not(:disabled){background:var(--soft)}
+.stage.is-fs .player #play{background:var(--ink);color:var(--panel)}
+.stage.is-fs.idle,.stage.is-fs.idle svg#svg{cursor:none}
+.stage.is-fs .fsprog{display:flex;gap:3px;position:absolute;top:0;left:0;right:0;height:4px;z-index:5}
+.fsprog i{flex:1;background:var(--grid);position:relative;overflow:hidden}
+.fsprog i b{position:absolute;inset:0 auto 0 0;width:0;background:var(--new)}
+.fsprog i.done b{width:100%;background:var(--off)}
+.stage.is-fs .fscount{display:block;position:absolute;top:clamp(30px,5vh,64px);right:clamp(32px,6vw,120px);font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(13px,.9vw,16px);color:var(--muted);z-index:5}
+.stage.is-fs .fshint{display:block;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:12px 20px;border-radius:12px;background:color-mix(in srgb,var(--ink) 86%,transparent);color:var(--panel);font-size:15px;white-space:nowrap;z-index:7;opacity:0;pointer-events:none;transition:opacity .4s}
+.stage.is-fs .fshint.on{opacity:1}
+.fshint .kbd{color:var(--ink);margin:0 4px}
+.stage.is-fs #edit{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>__H1__</h1>
+    <p>__LEAD__</p>
+  </header>
+  <nav class="stepper" id="flow" aria-label="步骤"></nav>
+  <section class="stage">
+    <div class="shead"><span class="idx" id="idx"></span><h2 id="title"></h2><p class="key" id="key"></p></div>
+    <div class="scroll"><svg id="svg" viewBox="0 0 960 500" role="img" aria-label="动画画面"><defs id="defs"></defs><g id="fg"></g></svg></div>
+    <div class="player">
+      <button id="prev" aria-label="上一步">←<span class="lbl"> 上一步</span></button>
+      <button id="play">暂停</button>
+      <input id="slider" type="range" min="0" max="10" step="0.05" value="0" aria-label="时间">
+      <span class="tnum" id="tlabel"></span>
+      <button id="next" aria-label="下一步"><span class="lbl">下一步 </span>→</button>
+      <button id="fs" aria-label="全屏播放" title="全屏（F）">全屏</button>
+    </div>
+    <p class="narr" id="caption" aria-live="polite"></p>
+    <details class="more"><summary>这一步的细节与限制</summary><p id="note"></p></details>
+    <div class="sfoot">
+      <span class="hint"><span class="kbd">空格</span> 播放 / 暂停　<span class="kbd">←</span> 上一步　<span class="kbd">→</span> 跳到本步结尾，再按进下一步　<span class="kbd">F</span> 全屏放映（放映时点击画面进下一步）</span>
+      <span><label for="speed">速度 <input id="speed" type="range" min="0.5" max="4" step="0.1" value="2" style="width:110px" oninput="document.getElementById('speedv').textContent=parseFloat(this.value).toFixed(1)+'×'"><span id="speedv" class="tnum" style="min-width:2.6em">2.0×</span></label>
+      <label for="auto"><input type="checkbox" id="auto">播完自动进下一步</label>
+      <button id="replay" style="font:inherit;font-size:13px;border:0;background:none;color:var(--muted);cursor:pointer;text-decoration:underline">重播这一步</button></span>
+    </div>
+  </section>
+  <details class="ref">
+    <summary>关键数字与出处</summary>
+    <table id="reftab"></table>
+    <p class="note">__SOURCES__</p>
+  </details>
+</div>
+<script id="edits" type="application/json">{}</script>
+<script>
+const PRISTINE = "<!doctype html>\n" + document.documentElement.outerHTML, ED_L0 = +(((new Error().stack||"").match(/:(\d+):\d+\)?\s*$/m)||[0,0])[1]);   // 编辑器：保存底稿、主脚本起始行
+const D = /*__DATA__*/{};   // 构建脚本把真实数据 JSON 替换进来
+const NS = "http://www.w3.org/2000/svg";
+const fg = document.getElementById("fg"), defs = document.getElementById("defs");
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function el(tag, a, p){ const e=document.createElementNS(NS,tag); for(const k in a){ if(a[k]!==undefined && a[k]!==null) e.setAttribute(k,a[k]); } if(KEYING && p!==defs) e.setAttribute("data-k",edKey()); (p||fg).appendChild(e); return e; }
+function tx(x,y,s,a,p){ const e=el("text",Object.assign({x,y,"font-size":14},a||{}),p); e.textContent=s; return e; }
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const seg=(t,a,b)=>clamp((t-a)/(b-a));
+const ease=u=>u<.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+const E=(t,a,b)=>ease(seg(t,a,b));
+const lerp=(a,b,u)=>a+(b-a)*u;
+function iou(a,b){ const ix=Math.max(0,Math.min(a[2],b[2])-Math.max(a[0],b[0])), iy=Math.max(0,Math.min(a[3],b[3])-Math.max(a[1],b[1])); const I=ix*iy; const U=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-I; return U>0?I/U:0; }
+const inside=(p,bs)=>{const cx=(p[0]+p[2])/2, cy=(p[1]+p[3])/2; return bs.some(b=>b[0]<=cx&&cx<=b[2]&&b[1]<=cy&&cy<=b[3]);};
+const fmt=(v,n=2)=>Number(v).toFixed(n);
+
+/* ---------- 公共图元 ---------- */
+function band(x,y,w,h,kind,label){
+  const c={opt:["--optbg","--opt"],det:["--detbg","--det"],ele:["--elebg","--ele"],new:["--newbg","--new"]}[kind];
+  el("rect",{x,y,width:w,height:h,rx:12,fill:`var(${c[0]})`,stroke:kind==="det"?`var(${c[1]})`:"none","stroke-dasharray":kind==="det"?"5 4":null});
+  if(label){ const t=tx(x+12,y+20,label,{"font-size":13,"font-weight":700,fill:`var(${c[1]})`}); }
+}
+function photo(x,y,w,op){ const h=w*D.img_h/D.img_w; el("image",{href:D.img,x,y,width:w,height:h,opacity:op??1,preserveAspectRatio:"none"}); el("rect",{x,y,width:w,height:h,fill:"none",stroke:"var(--off)","stroke-width":1,opacity:op??1}); return h; }
+function boxOn(b,x,y,w,col,sw,op,dash){ const s=w/D.img_w; el("rect",{x:x+b[0]*s,y:y+b[1]*s,width:(b[2]-b[0])*s,height:(b[3]-b[1])*s,fill:"none",stroke:col,"stroke-width":sw||2,opacity:op??1,"stroke-dasharray":dash}); }
+function plate(x,y,h,img,op){ // 斜放的薄板（可贴图）
+  const d=26, s=14, g=el("g",{opacity:op??1});
+  const id="clip"+Math.round(x)+"_"+Math.round(y);
+  if(!document.getElementById(id)){ const cp=el("clipPath",{id},defs); el("polygon",{points:`${x},${y+s} ${x+d},${y} ${x+d},${y+h-s} ${x},${y+h}`},cp); }
+  if(img) el("image",{href:img,x:x-40,y,width:d+80,height:h,preserveAspectRatio:"none","clip-path":`url(#${id})`},g);
+  else el("polygon",{points:`${x},${y+s} ${x+d},${y} ${x+d},${y+h-s} ${x},${y+h}`,fill:"var(--optbg)"},g);
+  el("polygon",{points:`${x},${y+s} ${x+d},${y} ${x+d},${y+h-s} ${x},${y+h}`,fill:"none",stroke:"var(--ink)","stroke-width":1},g);
+  return g;
+}
+function beam(x1,y1a,y1b,x2,y2a,y2b,u,op){ // 由左向右推进的扇形色带，u 为进度 if(u<=0) return; const xe=lerp(x1,x2,u), ya=lerp(y1a,y2a,u), yb=lerp(y1b,y2b,u);
+  el("polygon",{points:`${x1},${y1a} ${xe},${ya} ${xe},${yb} ${x1},${y1b}`,fill:"var(--beam)",opacity:(op??.22)}); }
+function chip(x,y,w,h,label,col){ for(let i=0;i<4;i++){ const px=x+w*(i+.7)/4.4; el("rect",{x:px-3,y:y-5,width:6,height:5,fill:"var(--off)"}); el("rect",{x:px-3,y:y+h,width:6,height:5,fill:"var(--off)"}); }
+  el("rect",{x,y,width:w,height:h,rx:6,fill:col}); label.split("\n").forEach((l,i,a)=>tx(x+w/2,y+h/2+(i-(a.length-1)/2)*17+5,l,{"text-anchor":"middle",fill:"#fff","font-weight":700,"font-size":13})); }
+function arrow(x1,y1,x2,y2,col,op){ el("line",{x1,y1,x2,y2,stroke:col||"var(--muted)","stroke-width":1.6,opacity:op??1,"marker-end":"url(#ah)"}); }
+function chipNote(x,y,s,col,a){ return tx(x,y,s,Object.assign({"font-size":12,fill:col||"var(--muted)","text-anchor":"middle"},a||{})); }
+function label(x,y,s,a){ return tx(x,y,s,Object.assign({"font-size":14,"font-weight":700,"text-anchor":"middle"},a||{})); }
+
+/* ---------- 本动画专用：在这里写 STEPS ---------- */
+/* 每一步：g 分组（步骤条上的章节名）、nm 步骤条短名、title 大标题、key 一句话要点、dur 秒数、
+   cap [[起始秒, 旁白 HTML], ...]（<b> 强调、<em> 警示）、note 细节与出处、draw(t) 按时间 t 画整帧（每帧清空重画）。
+   画布 viewBox 960×500。常用：band() 色块分区、label()/tx() 文字、arrow()、chip()、el() 任意 SVG、
+   seg(t,a,b) 0→1 线性进度、E(t,a,b) 缓动进度、photo()/boxOn() 画 D.img 与框。颜色只用 var(--token)。 */
+const STEPS = [
+{g:"第一章", nm:"示例一", title:"示例：一句话说清这一步在干什么", key:"要点：一句话", dur:8,
+ cap:[[0,"第一段旁白：先说结论，再给数字。"],[4,"第二段旁白：<b>强调</b>或<em>警示</em>。"]],
+ note:"出处：脚本 / CSV / 论文行号。",
+ draw(t){ band(40,60,420,360,"opt","模块 A"); band(500,60,420,360,"ele","模块 B");
+   label(250,200,"输入",{opacity:seg(t,.2,1)}); arrow(300,240,640,240,null,E(t,1,3)); label(710,200,"输出",{opacity:seg(t,3,4)}); }},
+{g:"第一章", nm:"示例二", title:"示例：第二步", key:"", dur:6,
+ cap:[[0,"……"]], note:"",
+ draw(t){ chip(380,200,200,48,"一个模块","var(--new)"); }}
+];
+
+/* ---------- 参考表（可删） ---------- */
+(function(){ const rows=[["项目","数值","出处"]];
+  document.getElementById("reftab").innerHTML="<tr><th>项目</th><th>数值</th><th>备注</th></tr>"+rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+})();
+
+/* ---------- 播放器 ---------- */
+const svg=document.getElementById("svg");
+(function(){ const m=el("marker",{id:"ah",viewBox:"0 0 10 10",refX:9,refY:5,markerWidth:7,markerHeight:7,orient:"auto"},defs); el("path",{d:"M0,0 L10,5 L0,10 z",fill:"var(--muted)"},m);
+  const m2=el("marker",{id:"ah2",viewBox:"0 0 10 10",refX:1,refY:5,markerWidth:7,markerHeight:7,orient:"auto"},defs); el("path",{d:"M10,0 L0,5 L10,10 z",fill:"var(--muted)"},m2); })();
+const flow=document.getElementById("flow"), btns=[];
+let cur=0, t=0, playing=true, last=null, hold=0;
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $=id=>document.getElementById(id);
+function buildStepper(){ flow.innerHTML=""; btns.length=0; const groups=[];
+  STEPS.forEach((s,i)=>{ let g=groups.find(x=>x.n===s.g); if(!g){ g={n:s.g,items:[]}; groups.push(g);} g.items.push(i); });
+  groups.forEach(g=>{ const d=document.createElement("div"); d.className="grp"; d.innerHTML=`<span class="gl">${g.n}</span>`; const row=document.createElement("div"); row.className="row";
+    g.items.forEach(i=>{ const b=document.createElement("button"); b.className="st"+(STEPS[i].hidden?" hid":""); b.innerHTML=`<span class="bar"><i></i></span><span class="nm">${STEPS[i].nm}</span>`; b.onclick=()=>go(i); row.appendChild(b); btns[i]=b; });
+    d.appendChild(row); flow.appendChild(d); }); }
+edInit(); buildStepper();
+function caption(s,t){ let c=s.cap[0][1]; for(const [ts,txt] of s.cap) if(t>=ts) c=txt; return c; }
+function render(){ const s=STEPS[cur]; while(fg.firstChild) fg.removeChild(fg.firstChild); edBefore(s); try{ s.draw(t); } finally { edAfter(s); }
+  const c=caption(s,t); if($("caption").dataset.c!==c){ $("caption").innerHTML=c; $("caption").dataset.c=c; }
+  $("slider").value=t; $("tlabel").textContent=`${t.toFixed(1)} / ${s.dur} s`;
+  btns.forEach((b,i)=>{ b.classList.toggle("on",i===cur); b.classList.toggle("done",i<cur); b.querySelector("i").style.width = i===cur ? (100*t/s.dur)+"%" : ""; }); }
+function go(i){ cur=clamp(i,0,STEPS.length-1); const s=STEPS[cur]; t=reduce?s.dur:0; hold=0; playing=!reduce; $("play").textContent=playing?"暂停":"播放";
+  $("idx").textContent=`第 ${cur+1} 步 / 共 ${STEPS.length} 步 · ${s.g}`+(s.hidden?"（已隐藏）":""); $("title").textContent=s.title; $("key").textContent=s.key; $("note").textContent=s.note;
+  $("slider").max=s.dur; $("prev").disabled=cur===0; $("next").disabled=cur===STEPS.length-1; $("caption").dataset.c=""; edGo(s); render(); btns[cur].scrollIntoView({block:"nearest",inline:"nearest"}); edPanel(); }
+function tick(ts){ if(last===null) last=ts; const dt=(ts-last)/1000; last=ts;
+  if(playing){ const s=STEPS[cur]; t+=dt*parseFloat($("speed").value);
+    if(t>=s.dur){ t=s.dur;
+      if($("auto").checked && cur<STEPS.length-1){ hold+=dt; if(hold>1.2){ go(cur+1); } }
+      else { playing=false; $("play").textContent="播放"; } }
+    render(); }
+  requestAnimationFrame(tick); }
+$("play").onclick=()=>{ if(!playing && t>=STEPS[cur].dur) t=0; playing=!playing; $("play").textContent=playing?"暂停":"播放"; };
+$("prev").onclick=()=>go(cur-1); $("next").onclick=()=>go(cur+1);
+$("replay").onclick=()=>{ t=0; playing=true; $("play").textContent="暂停"; };
+$("slider").oninput=e=>{ t=parseFloat(e.target.value); playing=false; $("play").textContent="播放"; render(); };
+function toggleFS(){ const el=document.querySelector(".stage"), d=document, fe=d.fullscreenElement||d.webkitFullscreenElement;
+  if(fe){ (d.exitFullscreen||d.webkitExitFullscreen).call(d); } else { const r=el.requestFullscreen||el.webkitRequestFullscreen; if(r) r.call(el); } }
+const fsLabel=()=>{ const on=!!(document.fullscreenElement||document.webkitFullscreenElement); $("fs").textContent=on?"退出全屏":"全屏"; };
+document.addEventListener("fullscreenchange",fsLabel); document.addEventListener("webkitfullscreenchange",fsLabel);
+$("fs").onclick=toggleFS;
+document.addEventListener("keydown",e=>{ if((["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName)&&e.target.type!=="range")||e.target.isContentEditable) return;
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  if(e.code==="Space"){ e.preventDefault(); if(e.target.blur) e.target.blur(); $("play").click(); }
+  else if(e.key==="ArrowRight"){ e.preventDefault(); if(t<STEPS[cur].dur-1e-3){ t=STEPS[cur].dur; playing=false; hold=0; $("play").textContent="播放"; render(); } else if(cur<STEPS.length-1) go(cur+1); } else if(e.key==="ArrowLeft"){ e.preventDefault(); go(cur-1); }
+  else if(e.key==="f"||e.key==="F") toggleFS(); });
+if(reduce){ playing=false; $("play").textContent="播放"; }
+go(0);
+{ const m=location.hash.match(/s=(\d+)&t=([\d.]+)/); if(m){ go(parseInt(m[1])); t=parseFloat(m[2]); playing=false; $("play").textContent="播放"; render(); } }
+requestAnimationFrame(tick);
+
+/* ---------- 网页编辑器：按 E 或点「编辑」进入；改动记在 <script id="edits">，点「保存」写回 HTML ----------
+   数据：ED = {v, page:{h1,lead}, steps:{<步骤键>:{f:{g,nm,title,key,note,dur,cap}, hidden, ov:{<元素键>:{dx,dy,text,fs,fw,fill,stroke,sw,hide}}, add:[新增元素]}}, ins:[{id,after,g}]}
+   步骤键 = "分组/短名"；元素键 = 画这个元素的代码位置（行:列）+ 同一位置的第几次调用。改了 STEPS 的代码后，旧的元素改动可能对不上。 */
+// 这一段在脚本末尾，但 edInit() 在播放器建立前就被调用：变量只声明、不在这里赋初值，否则脚本跑到这里会把已初始化的状态清掉。
+var ED, ED_EMBED, editing, KEYING, edKB, edOcc, edSelK, edHist, edRedo, edPend, edFH, edDirty, edUI, edORIG, edINS, edDK, edPageO, ED_COLORS;
+function edInit(){
+  editing=false; KEYING=false; edKB=0; edOcc={}; edSelK=null; edHist=[]; edRedo=[]; edPend=false; edFH=null; edDirty=false; edINS={};
+  ED_COLORS=["var(--ink)","var(--muted)","var(--off)","var(--opt)","var(--det)","var(--ele)","var(--new)","var(--bad)","var(--good)","var(--panel)"];
+  try{ Error.stackTraceLimit=Math.max(Error.stackTraceLimit||10,80); }catch(e){}
+  ED={v:1,page:{},steps:{},ins:[]};
+  try{ Object.assign(ED, JSON.parse(document.getElementById("edits").textContent||"{}")); }catch(e){}
+  ED_EMBED=JSON.stringify(ED); edDK="anim-edit:"+location.pathname;
+  const seen={}; edORIG=STEPS.slice();
+  edORIG.forEach(s=>{ let k=(s.g||"")+"/"+(s.nm||""); seen[k]=(seen[k]||0)+1; if(seen[k]>1) k+="#"+seen[k]; s.sk=k;
+    s._o={g:s.g,nm:s.nm,title:s.title,key:s.key,note:s.note,dur:s.dur,cap:s.cap}; });
+  const h=document.querySelector("header h1"), p=document.querySelector("header p");
+  edPageO={h1:h?h.innerHTML:"", lead:p?p.innerHTML:""};
+  edUI=el("g",{id:"edui"},svg);
+  edBuildDOM(); edApplyPage(); edRebuild();
+  try{ const d=JSON.parse(localStorage.getItem(edDK)||"null"); if(d&&d.ed&&d.ed!==ED_EMBED) edBanner(d); }catch(e){}
+}
+/* 按 ED 重排 STEPS（原地修改数组，外部对 STEPS 的引用不失效） */
+function edInsObj(n){ let s=edINS[n.id]; if(!s) s=edINS[n.id]={sk:"new:"+n.id, draw(){}};
+  s._o={g:n.g||"新增",nm:"新步骤",title:"新步骤",key:"",note:"",dur:8,cap:[[0,""]]}; return s; }
+function edRebuild(){
+  const curSk=STEPS[cur]&&STEPS[cur].sk, out=[];
+  const kids=sk=>ED.ins.filter(n=>n.after===sk).forEach(n=>add(edInsObj(n)));
+  const add=s=>{ const e=ED.steps[s.sk]||{}; Object.assign(s,s._o,e.f||{}); if(!s.cap||!s.cap.length) s.cap=[[0,""]];
+    s.hidden=!!e.hidden; if(!s.hidden||editing) out.push(s); kids(s.sk); };
+  kids(""); edORIG.forEach(add);
+  if(!out.length) out.push(edORIG[0]);
+  STEPS.length=0; out.forEach(s=>STEPS.push(s));
+  const i=STEPS.findIndex(s=>s.sk===curSk); cur=i>=0?i:clamp(cur||0,0,STEPS.length-1);
+}
+function edApplyPage(){ const h=document.querySelector("header h1"), p=document.querySelector("header p");
+  if(h){ if(ED.page.h1!=null) h.textContent=ED.page.h1; else h.innerHTML=edPageO.h1; }
+  if(p){ if(ED.page.lead!=null) p.textContent=ED.page.lead; else p.innerHTML=edPageO.lead; } }
+/* 元素键：调用栈里 el() 之上、render() 之下那几帧的行:列 */
+function edFrames(){ const r=[]; for(const l of (new Error().stack||"").split("\n")){ const m=l.match(/:(\d+):(\d+)\)?\s*$/); if(m) r.push((m[1]-ED_L0)+":"+m[2]); } return r; }   // 行号相对主脚本第一行，页面头部变化不影响
+function edKey(){ const f=edFrames(), sig=f.slice(3,2+f.length-edKB).join(">"); edOcc[sig]=(edOcc[sig]||0)+1; return sig+"#"+edOcc[sig]; }
+function edBefore(s){ const e=ED.steps[s.sk]; KEYING=editing||!!(e&&e.ov&&Object.keys(e.ov).length); if(KEYING){ edKB=edFrames().length; edOcc={}; } }
+function edAfter(s){ KEYING=false; const e=ED.steps[s.sk]||{};
+  if(e.ov) for(const n of fg.querySelectorAll("[data-k]")){ const o=e.ov[n.getAttribute("data-k")]; if(o) edApplyOv(n,o); }
+  (e.add||[]).forEach(edDrawAdd);
+  if(editing) edDrawSel(); }
+function edSetText(n,s){ const x=n.getAttribute("x"); n.textContent="";
+  String(s).split("\n").forEach((l,i)=>{ const ts=document.createElementNS(NS,"tspan"); if(i){ if(x!=null) ts.setAttribute("x",x); ts.setAttribute("dy","1.3em"); } ts.textContent=l; n.appendChild(ts); }); }
+function edApplyOv(n,o){
+  if(o.dx||o.dy){ const tr=n.getAttribute("transform"); n.setAttribute("transform",`translate(${o.dx||0},${o.dy||0})`+(tr?" "+tr:"")); }
+  if(o.text!=null&&n.tagName==="text") edSetText(n,o.text);
+  if(o.fill!=null) n.style.fill=o.fill; if(o.stroke!=null) n.style.stroke=o.stroke; if(o.sw!=null) n.style.strokeWidth=o.sw;
+  if(o.fs!=null) n.style.fontSize=o.fs+"px"; if(o.fw!=null) n.style.fontWeight=o.fw;
+  if(o.hide){ if(editing){ n.setAttribute("opacity",.18); n.style.strokeDasharray="3 3"; } else n.setAttribute("display","none"); } }
+function edDrawAdd(a){
+  const t0=+a.t0||0, has1=a.t1!=null&&a.t1!=="";
+  let op=(t0>0?seg(t,t0,t0+.4):1)*(has1?1-seg(t,+a.t1,+a.t1+.4):1);
+  if(editing) op=Math.max(op,.2); if(op<=0) return;
+  const g=el("g",{opacity:op,"data-a":a.id,class:"ed-add"}), c=a.color||"var(--bad)", sw=a.sw??2;
+  if(a.type==="text"){ const n=el("text",{x:a.x,y:a.y,"font-size":a.fs||18},g); n.style.fill=a.color||"var(--ink)"; n.style.fontWeight=a.bold?700:400; edSetText(n,a.text??""); }
+  else if(a.type==="rect"){ const n=el("rect",{x:a.x,y:a.y,width:a.w,height:a.h,rx:a.r??6},g); n.style.fill=a.fill||"none"; n.style.stroke=c; n.style.strokeWidth=sw; }
+  else if(a.type==="ellipse"){ const n=el("ellipse",{cx:a.x+a.w/2,cy:a.y+a.h/2,rx:a.w/2,ry:a.h/2},g); n.style.fill=a.fill||"none"; n.style.stroke=c; n.style.strokeWidth=sw; }
+  else if(a.type==="arrow"){ const L=Math.hypot(a.x2-a.x,a.y2-a.y)||1, ux=(a.x2-a.x)/L, uy=(a.y2-a.y)/L, hs=6+sw*2.2, bx=a.x2-ux*hs, by=a.y2-uy*hs;
+    const l=el("line",{x1:a.x,y1:a.y,x2:bx,y2:by},g); l.style.stroke=c; l.style.strokeWidth=sw;
+    const p=el("polygon",{points:`${a.x2},${a.y2} ${bx-uy*hs*.5},${by+ux*hs*.5} ${bx+uy*hs*.5},${by-ux*hs*.5}`},g); p.style.fill=c;
+    if(editing){ const h=el("line",{x1:a.x,y1:a.y,x2:a.x2,y2:a.y2,stroke:"transparent","stroke-width":12},g); h.style.pointerEvents="stroke"; } }
+  else if(a.type==="image") el("image",{href:a.src,x:a.x,y:a.y,width:a.w,height:a.h,preserveAspectRatio:"none"},g);
+}
+/* 选中与拖动 */
+function edE(){ const sk=STEPS[cur].sk; return ED.steps[sk]||(ED.steps[sk]={}); }
+function edOv(k,make){ const e=make?edE():ED.steps[STEPS[cur].sk]; if(!e) return null; if(!e.ov){ if(!make) return null; e.ov={}; } if(!e.ov[k]&&make) e.ov[k]={}; return e.ov[k]||null; }
+function edItem(){ if(!edSelK||edSelK[0]!=="a") return null; const e=ED.steps[STEPS[cur].sk]; return e&&e.add? e.add.find(x=>x.id===edSelK[1])||null : null; }
+function edNode(){ if(!edSelK) return null; const at=edSelK[0]==="a"?"data-a":"data-k"; for(const n of fg.querySelectorAll(`[${at}]`)) if(n.getAttribute(at)===edSelK[1]) return n; return null; }
+function edPt(ev,node){ const q=svg.createSVGPoint(); q.x=ev.clientX; q.y=ev.clientY; return q.matrixTransform((node||svg).getScreenCTM().inverse()); }
+function edDrawSel(){ while(edUI.firstChild) edUI.removeChild(edUI.firstChild); const n=edNode(); if(!n) return;
+  const r=n.getBoundingClientRect(), a=edPt({clientX:r.left,clientY:r.top}), b=edPt({clientX:r.right,clientY:r.bottom});
+  el("rect",{x:a.x-3,y:a.y-3,width:b.x-a.x+6,height:b.y-a.y+6,class:"ed-sel"},edUI);
+  const it=edItem(); if(!it) return;
+  const hd=(x,y,h)=>el("rect",{x:x-5,y:y-5,width:10,height:10,class:"ed-h","data-h":h},edUI);
+  if(it.type==="arrow"){ hd(it.x,it.y,"p1"); hd(it.x2,it.y2,"p2"); } else if(it.type!=="text") hd(it.x+it.w,it.y+it.h,"br"); }
+function edAlpha(n){ let o=1; for(let x=n; x&&x!==svg&&x.getAttribute; x=x.parentNode){ if(x.getAttribute("display")==="none") return 0; const v=x.getAttribute("opacity"); if(v!=null&&v!=="") o*=parseFloat(v); } return o; }
+function edPick(ev){ const list=[];
+  for(const n of document.elementsFromPoint(ev.clientX,ev.clientY)){ if(!fg.contains(n)) continue; const k=n.closest("[data-a],[data-k]"); if(!k||list.includes(k)||edAlpha(n)<.05) continue; list.push(k); }
+  if(!list.length) return null;
+  if(ev.altKey&&edSelK){ const i=list.indexOf(edNode()); if(i>=0) return list[(i+1)%list.length]; }
+  return list[0]; }
+function edSelect(k){ edSelK=k; render(); edPanel(); }
+function edPointer(ev){ if(!editing||ev.button!==0) return;
+  const h=ev.target.closest&&ev.target.closest("[data-h]"); let drag;
+  if(h) drag={h:h.getAttribute("data-h"), s:JSON.parse(JSON.stringify(edItem())), p0:edPt(ev)};
+  else { const n=edPick(ev); if(!n){ edSelect(null); return; }
+    const k=n.hasAttribute("data-a")?["a",n.getAttribute("data-a")]:["k",n.getAttribute("data-k")]; edSelect(k);
+    if(k[0]==="a") drag={h:"move", s:JSON.parse(JSON.stringify(edItem())), p0:edPt(ev)};
+    else { const o=edOv(k[1],false)||{}; drag={h:"ov", s:{dx:o.dx||0,dy:o.dy||0}, p0:edPt(ev,n.parentNode)}; } }
+  ev.preventDefault(); try{ svg.setPointerCapture(ev.pointerId); }catch(e){} let moved=false;
+  const mv=e=>{ const nd=edNode(), par=drag.h==="ov"&&nd?nd.parentNode:null, p=edPt(e,par); let dx=p.x-drag.p0.x, dy=p.y-drag.p0.y;
+    if(e.shiftKey&&(drag.h==="ov"||drag.h==="move")){ if(Math.abs(dx)>Math.abs(dy)) dy=0; else dx=0; }
+    if(!moved){ if(Math.hypot(dx,dy)<2) return; moved=true; edSnap(); }
+    const R=Math.round, s=drag.s;
+    if(drag.h==="ov"){ const o=edOv(edSelK[1],true); o.dx=R(s.dx+dx); o.dy=R(s.dy+dy); }
+    else { const it=edItem(); if(!it) return;
+      if(drag.h==="move"){ it.x=R(s.x+dx); it.y=R(s.y+dy); if(it.type==="arrow"){ it.x2=R(s.x2+dx); it.y2=R(s.y2+dy); } }
+      else if(drag.h==="br"){ it.w=Math.max(4,R(s.w+dx)); it.h=Math.max(4,R(s.h+dy)); if(e.shiftKey) it.h=Math.max(4,R(it.w*s.h/s.w)); }
+      else if(drag.h==="p1"){ it.x=R(s.x+dx); it.y=R(s.y+dy); }
+      else if(drag.h==="p2"){ it.x2=R(s.x2+dx); it.y2=R(s.y2+dy); } }
+    render(); };
+  const up=()=>{ svg.removeEventListener("pointermove",mv); svg.removeEventListener("pointerup",up); svg.removeEventListener("pointercancel",up);
+    if(moved){ edChanged(); edPanel(); } };
+  svg.addEventListener("pointermove",mv); svg.addEventListener("pointerup",up); svg.addEventListener("pointercancel",up); }
+/* 撤销 / 保存 */
+function edSnap(){ edHist.push(JSON.stringify(ED)); if(edHist.length>300) edHist.shift(); edRedo=[]; }
+function edLoad(json){ ED=JSON.parse(json); edApplyPage(); edRebuild(); buildStepper(); if(edSelK&&(edSelK[0]==="a"?!edItem():false)) edSelK=null; edChanged(); edRefresh(); }
+function edUndo(){ if(!edHist.length) return edToast("没有可撤销的修改"); edRedo.push(JSON.stringify(ED)); edLoad(edHist.pop()); }
+function edRedoF(){ if(!edRedo.length) return; edHist.push(JSON.stringify(ED)); edLoad(edRedo.pop()); }
+function edChanged(){ edDirty=JSON.stringify(ED)!==ED_EMBED; try{ if(edDirty) localStorage.setItem(edDK,JSON.stringify({ed:JSON.stringify(ED),at:Date.now()})); else localStorage.removeItem(edDK); }catch(e){}
+  const b=document.getElementById("edsave"); if(b) b.textContent=edDirty?"保存 *":"保存"; }
+function edAct(fn){ edSnap(); fn(); edChanged(); edRefresh(); }
+function edHead(){ const s=STEPS[cur]; $("idx").textContent=`第 ${cur+1} 步 / 共 ${STEPS.length} 步 · ${s.g}`+(s.hidden?"（已隐藏）":"");
+  $("title").textContent=s.title; $("key").textContent=s.key; $("note").textContent=s.note;
+  $("slider").max=s.dur; t=Math.min(t,s.dur); $("caption").dataset.c=""; $("prev").disabled=cur===0; $("next").disabled=cur===STEPS.length-1; }
+function edRefresh(){ edHead(); render(); edPanel(); }
+async function edSave(){
+  const json=JSON.stringify(ED).replace(/</g,"\\u003c");
+  const html=PRISTINE.replace(/(<script id="edits" type="application\/json">)[\s\S]*?(<\/script>)/,(m,a,b)=>a+json+b);
+  const name=decodeURIComponent(location.pathname.split("/").pop()||"animation.html")||"animation.html";
+  try{
+    if(window.showSaveFilePicker){ if(!edFH) edFH=await showSaveFilePicker({suggestedName:name,types:[{description:"HTML",accept:{"text/html":[".html"]}}]});
+      const w=await edFH.createWritable(); await w.write(html); await w.close(); edToast("已保存到 "+edFH.name); }
+    else { const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([html],{type:"text/html"})); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000); edToast("已下载 "+name+"，用它替换原文件"); }
+    ED_EMBED=JSON.stringify(ED); edChanged();
+  }catch(e){ if(e.name!=="AbortError") edToast("保存失败："+e.message); } }
+function edToast(m){ const e=document.getElementById("edtoast"); e.textContent=m; e.style.opacity=1; clearTimeout(edToast.h); edToast.h=setTimeout(()=>e.style.opacity=0,2600); }
+function edBanner(d){ const b=edMk("div",{id:"edbanner"},[edMk("span",{text:`这个页面有 ${new Date(d.at).toLocaleString()} 未保存的网页修改。`}),
+  edBtn("恢复",()=>{ edSnap(); edLoad(d.ed); b.remove(); }), edBtn("丢弃",()=>{ try{ localStorage.removeItem(edDK); }catch(e){} b.remove(); })]);
+  document.querySelector(".wrap").prepend(b); }
+/* 面板 */
+function edMk(tag,props,kids){ const e=document.createElement(tag);
+  for(const k in props||{}){ const v=props[k]; if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else if(k.startsWith("on")) e[k]=v; else e.setAttribute(k,v); }
+  (kids||[]).forEach(c=>c&&e.appendChild(typeof c==="string"?document.createTextNode(c):c)); return e; }
+function edBtn(text,fn,cls){ return edMk("button",{type:"button",class:cls||"",text,onclick:fn}); }
+function edInput(label,val,set,opt){ opt=opt||{};
+  const inp=opt.area? edMk("textarea",{rows:opt.rows||2}) : edMk("input",{type:opt.num?"number":"text",step:"any"});
+  inp.value=val??""; inp.onfocus=()=>{ edPend=true; };
+  inp.oninput=()=>{ if(edPend){ edSnap(); edPend=false; } set(opt.num?(inp.value===""?null:parseFloat(inp.value)):inp.value); edChanged(); };
+  if(opt.change) inp.onchange=()=>opt.change(inp.value);
+  return label? edMk("label",{class:"f"},[edMk("span",{text:label}),inp]) : inp; }
+function edCheck(label,val,set){ const c=edMk("input",{type:"checkbox"}); c.checked=!!val; c.onchange=()=>edAct(()=>set(c.checked));
+  return edMk("label",{class:"f"},[edMk("span",{text:label}),c]); }
+function edSwatch(label,val,set,none){ const row=edMk("div",{class:"sw"});
+  ED_COLORS.forEach(c=>{ const b=edMk("button",{type:"button",title:c.slice(6,-1),class:c===val?"on":""}); b.style.background=c; b.onclick=()=>edAct(()=>set(c)); row.appendChild(b); });
+  if(none) row.appendChild(edMk("button",{type:"button",title:"无",class:"none"+(val==="none"?" on":""),onclick:()=>edAct(()=>set("none"))}));
+  const ci=edMk("input",{type:"color",title:"自定义颜色"}); if(/^#[0-9a-f]{6}$/i.test(val||"")) ci.value=val; ci.onchange=()=>edAct(()=>set(ci.value)); row.appendChild(ci);
+  return edMk("label",{class:"f"},[edMk("span",{text:label}),row]); }
+function edBuildDOM(){
+  const fs=$("fs"); fs.parentNode.insertBefore(edMk("button",{id:"edit",type:"button",title:"在网页上修改（E）",text:"编辑",onclick:()=>edToggle()}),fs);
+  const hint=document.querySelector(".sfoot .hint"); if(hint) hint.appendChild(edMk("span",{},["　",edMk("span",{class:"kbd",text:"E"})," 编辑"]));
+  const add=(type)=>()=>edAddItem(type);
+  const file=edMk("input",{type:"file",accept:"image/*",style:"display:none"}); file.onchange=()=>{ const f=file.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ const im=new Image(); im.onload=()=>{ const w=Math.min(240,im.width), h=Math.round(w*im.height/im.width); edAddItem("image",{src:r.result,w,h}); }; im.src=r.result; }; r.readAsDataURL(f); file.value=""; };
+  const pnl=edMk("aside",{id:"edpanel",hidden:"",["aria-label"]:"编辑面板"},[
+    edMk("div",{class:"edtop"},[edMk("b",{text:"编辑"}),edMk("span",{class:"sp"}),edBtn("撤销",edUndo),edBtn("重做",edRedoF),edBtn("保存",edSave,"pri"),edBtn("退出",()=>edToggle())]),
+    edMk("div",{class:"edbar"},[edBtn("+ 文字",add("text")),edBtn("+ 方框",add("rect")),edBtn("+ 椭圆",add("ellipse")),edBtn("+ 箭头",add("arrow")),edBtn("+ 图片",()=>file.click()),file]),
+    edMk("p",{class:"edhint",text:"点画面里的元素选中并拖动（Shift 锁定方向，Alt+点击 选下面一层）；方向键微调 1，Shift+方向键 10；Delete 隐藏或删除；Ctrl+Z 撤销，Ctrl+S 保存。拖时间条可以在任意时刻编辑。"}),
+    edMk("section",{id:"edsel"}),edMk("section",{id:"edstep"}),edMk("section",{id:"edpage"})]);
+  pnl.querySelector(".edtop button.pri").id="edsave";
+  document.body.appendChild(pnl); document.body.appendChild(edMk("div",{id:"edtoast",role:"status"}));
+  svg.addEventListener("pointerdown",edPointer);
+  svg.addEventListener("dblclick",()=>{ if(!editing) return; const ta=document.querySelector("#edsel textarea"); if(ta){ ta.focus(); ta.select(); } });
+  document.addEventListener("keydown",edKeys,true);
+  window.addEventListener("beforeunload",e=>{ if(edDirty){ e.preventDefault(); e.returnValue=""; } });
+}
+function edAddItem(type,extra){ edAct(()=>{ const e=edE(); e.add=e.add||[]; const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  const base={text:{x:420,y:250,text:"双击改文字",fs:18,color:"var(--ink)"},rect:{x:400,y:200,w:160,h:100,color:"var(--bad)",fill:"none",sw:2},
+    ellipse:{x:400,y:200,w:160,h:100,color:"var(--bad)",fill:"none",sw:2},arrow:{x:400,y:250,x2:560,y2:250,color:"var(--bad)",sw:2},image:{x:360,y:150}}[type];
+  e.add.push(Object.assign({id,type,t0:0},base,extra||{})); edSelK=["a",id]; }); }
+function edToggle(){ editing=!editing; document.body.classList.toggle("editing",editing); $("edpanel").hidden=!editing; $("edit").classList.toggle("on",editing);
+  if(editing){ playing=false; $("play").textContent="播放"; if(t<1e-3) t=STEPS[cur].dur; } else { edSelK=null; while(edUI.firstChild) edUI.removeChild(edUI.firstChild); }
+  edRebuild(); buildStepper(); edRefresh(); }
+function edGo(s){ if(!editing) return; edSelK=null; playing=false; t=s.dur; $("play").textContent="播放"; }
+function edKeys(e){
+  const typing=(["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName)&&e.target.type!=="range")||e.target.isContentEditable, mod=e.ctrlKey||e.metaKey, k=e.key.toLowerCase();
+  const stop=()=>{ e.preventDefault(); e.stopImmediatePropagation(); };
+  if(editing&&mod&&k==="s"){ stop(); edSave(); return; }
+  if(typing) return;
+  if(!mod&&!e.altKey&&k==="e"){ stop(); edToggle(); return; }
+  if(!editing) return;
+  if(mod&&k==="z"){ stop(); e.shiftKey?edRedoF():edUndo(); return; }
+  if(mod&&k==="y"){ stop(); edRedoF(); return; }
+  if(!edSelK) return;
+  const it=edItem();
+  if(mod&&k==="d"&&it){ stop(); edDup(it); return; }
+  if(e.key==="Escape"){ stop(); edSelect(null); return; }
+  if(e.key==="Delete"||e.key==="Backspace"){ stop(); edDel(); return; }
+  const dir={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+  if(dir){ stop(); const n=e.shiftKey?10:1; edSnap();
+    if(it){ it.x+=dir[0]*n; it.y+=dir[1]*n; if(it.type==="arrow"){ it.x2+=dir[0]*n; it.y2+=dir[1]*n; } }
+    else { const o=edOv(edSelK[1],true); o.dx=(o.dx||0)+dir[0]*n; o.dy=(o.dy||0)+dir[1]*n; }
+    edChanged(); render(); edPanel(); } }
+function edDel(){ const it=edItem();
+  if(it) edAct(()=>{ const e=edE(); e.add=e.add.filter(x=>x!==it); edSelK=null; });
+  else edAct(()=>{ const o=edOv(edSelK[1],true); if(o.hide) delete o.hide; else o.hide=1; }); }
+function edDup(it){ edAct(()=>{ const c=JSON.parse(JSON.stringify(it)); c.id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  c.x+=14; c.y+=14; if(c.type==="arrow"){ c.x2+=14; c.y2+=14; } edE().add.push(c); edSelK=["a",c.id]; }); }
+function edPanel(){ if(!editing) return; edPanelSel(); edPanelStep(); edPanelPage(); }
+function edPanelSel(){
+  const box=$("edsel"); box.innerHTML=""; box.appendChild(edMk("h3",{text:"选中的元素"}));
+  const n=edNode(), it=edItem(), R1=v=>Math.round(v*10)/10;
+  if(!edSelK||!n){ box.appendChild(edMk("p",{class:"edhint",text:edSelK?"这个元素在当前时刻不在画面上，拖动时间条找到它。":"在画面上点一个元素。"})); return; }
+  if(!it){
+    const o=edOv(edSelK[1],false)||{}, tag=n.tagName;
+    const name={text:"文字",rect:"方框",line:"线",path:"路径",circle:"圆",ellipse:"椭圆",polygon:"多边形",polyline:"折线",image:"图片",g:"组"}[tag]||tag;
+    box.appendChild(edMk("p",{class:"edhint",text:`动画代码画的${name}。改动对这一步的每一帧都生效，原来的动画照常播放。`}));
+    const set=(k,v)=>{ const oo=edOv(edSelK[1],true); if(v==null||v==="") delete oo[k]; else oo[k]=v; render(); };
+    if(tag==="text"){
+      box.appendChild(edInput("内容",o.text??n.textContent,v=>set("text",v),{area:true}));
+      box.appendChild(edInput("字号",o.fs??parseFloat(n.getAttribute("font-size")||14),v=>set("fs",v),{num:true}));
+      const fw=o.fw??n.getAttribute("font-weight"); box.appendChild(edCheck("粗体",fw==="bold"||+fw>=600,v=>set("fw",v?700:400)));
+      box.appendChild(edSwatch("颜色",o.fill,v=>set("fill",v)));
+    } else if(tag!=="image"&&tag!=="g"){
+      box.appendChild(edSwatch("填充",o.fill,v=>set("fill",v),true)); box.appendChild(edSwatch("描边",o.stroke,v=>set("stroke",v),true));
+      box.appendChild(edInput("线宽",o.sw??n.getAttribute("stroke-width")??"",v=>set("sw",v),{num:true})); }
+    box.appendChild(edInput("右移",o.dx||0,v=>set("dx",v||0),{num:true})); box.appendChild(edInput("下移",o.dy||0,v=>set("dy",v||0),{num:true}));
+    box.appendChild(edMk("div",{class:"edbar"},[edBtn(o.hide?"取消隐藏":"隐藏",edDel),edBtn("还原这个元素",()=>edAct(()=>{ delete edE().ov[edSelK[1]]; }),"warn")]));
+    return; }
+  const name={text:"文字",rect:"方框",ellipse:"椭圆",arrow:"箭头",image:"图片"}[it.type];
+  box.appendChild(edMk("p",{class:"edhint",text:`网页上加的${name}。`}));
+  const set=(k,v)=>{ it[k]=v; render(); };
+  if(it.type==="text"){ box.appendChild(edInput("内容",it.text,v=>set("text",v),{area:true})); box.appendChild(edInput("字号",it.fs,v=>set("fs",v||18),{num:true}));
+    box.appendChild(edCheck("粗体",it.bold,v=>set("bold",v))); box.appendChild(edSwatch("颜色",it.color,v=>set("color",v))); }
+  if(it.type==="rect"||it.type==="ellipse"){ box.appendChild(edSwatch("描边",it.color,v=>set("color",v),true)); box.appendChild(edSwatch("填充",it.fill,v=>set("fill",v),true)); }
+  if(it.type==="arrow") box.appendChild(edSwatch("颜色",it.color,v=>set("color",v)));
+  if(["rect","ellipse","arrow"].includes(it.type)) box.appendChild(edInput("线宽",it.sw,v=>set("sw",v??2),{num:true}));
+  const xy=it.type==="arrow"?[["起点 x","x"],["起点 y","y"],["终点 x","x2"],["终点 y","y2"]]:it.type==="text"?[["x","x"],["y","y"]]:[["x","x"],["y","y"],["宽","w"],["高","h"]];
+  xy.forEach(([l,k])=>box.appendChild(edInput(l,it[k],v=>set(k,v??0),{num:true})));
+  box.appendChild(edInput("出现（秒）",it.t0,v=>set("t0",v??0),{num:true}));
+  box.appendChild(edInput("消失（秒）",it.t1??"",v=>set("t1",v),{num:true}));
+  const e=edE(), i=e.add.indexOf(it);
+  box.appendChild(edMk("div",{class:"edbar"},[
+    edBtn(`从 ${R1(t)} 秒出现`,()=>edAct(()=>{ it.t0=R1(t); })), edBtn("复制",()=>edDup(it)),
+    edBtn("上移一层",()=>edAct(()=>{ if(i<e.add.length-1){ e.add.splice(i,1); e.add.splice(i+1,0,it); } })),
+    edBtn("下移一层",()=>edAct(()=>{ if(i>0){ e.add.splice(i,1); e.add.splice(i-1,0,it); } })),
+    edBtn("删除",edDel,"warn")]));
+}
+function edPanelStep(){
+  const sb=$("edstep"), s=STEPS[cur], isNew=s.sk.startsWith("new:"), R1=v=>Math.round(v*10)/10; sb.innerHTML="";
+  sb.appendChild(edMk("h3",{text:`这一步（第 ${cur+1} 步）`+(s.hidden?" · 已隐藏":"")}));
+  const sf=(k,v)=>{ const e=edE(); e.f=e.f||{}; e.f[k]=v; s[k]=v; edHead(); render(); if(k==="g"||k==="nm") buildStepper(), render(); };
+  sb.appendChild(edInput("分组",s.g,v=>sf("g",v))); sb.appendChild(edInput("短名",s.nm,v=>sf("nm",v)));
+  sb.appendChild(edInput("标题",s.title,v=>sf("title",v),{area:true})); sb.appendChild(edInput("要点",s.key,v=>sf("key",v),{area:true}));
+  sb.appendChild(edInput("时长（秒）",s.dur,v=>sf("dur",Math.max(1,v||1)),{num:true}));
+  const cl=()=>s.cap.map(c=>c.slice()), sorted=c=>c.sort((a,b)=>a[0]-b[0]);
+  sb.appendChild(edMk("p",{class:"edhint",text:"旁白（秒数 + 文字；可用 <b>强调</b>、<em>警示</em>）"}));
+  s.cap.forEach((c,i)=>{
+    const ti=edInput(null,c[0],v=>{ const nc=cl(); nc[i][0]=v??0; sf("cap",nc); },{num:true,change:()=>{ sf("cap",sorted(cl())); edPanel(); }});
+    const ta=edInput(null,c[1],v=>{ const nc=cl(); nc[i][1]=v; sf("cap",nc); },{area:true});
+    sb.appendChild(edMk("div",{class:"caprow"},[ti,ta,edBtn("×",()=>edAct(()=>{ if(s.cap.length>1){ const nc=cl(); nc.splice(i,1); sf("cap",nc); } }))])); });
+  sb.appendChild(edMk("div",{class:"edbar"},[edBtn(`+ 在 ${R1(t)} 秒加一句`,()=>edAct(()=>{ const nc=cl(); nc.push([R1(t),"新旁白"]); sf("cap",sorted(nc)); }))]));
+  sb.appendChild(edInput("细节",s.note,v=>sf("note",v),{area:true,rows:3}));
+  const visible=()=>edORIG.concat(ED.ins.map(edInsObj)).filter(x=>!(ED.steps[x.sk]||{}).hidden).length;
+  sb.appendChild(edMk("div",{class:"edbar"},[
+    edBtn("在后面插入空白步",()=>edAct(()=>{ const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5); ED.ins.push({id,after:s.sk,g:s.g});
+      edRebuild(); buildStepper(); cur=STEPS.findIndex(x=>x.sk==="new:"+id); t=STEPS[cur].dur; edSelK=null; })),
+    isNew? edBtn("删除本步",()=>edAct(()=>{ const id=s.sk.slice(4), n=ED.ins.find(x=>x.id===id); ED.ins.forEach(x=>{ if(x.after===s.sk) x.after=n.after; });
+      ED.ins=ED.ins.filter(x=>x!==n); delete ED.steps[s.sk]; edRebuild(); buildStepper(); edSelK=null; }),"warn")
+    : edBtn(s.hidden?"恢复本步":"隐藏本步",()=>{ if(!s.hidden&&visible()<=1) return edToast("至少留一步"); edAct(()=>{ const e=edE(); if(e.hidden) delete e.hidden; else e.hidden=1; edRebuild(); buildStepper(); }); }),
+    edBtn("还原本步文字",()=>edAct(()=>{ delete edE().f; edRebuild(); }),"warn")]));
+}
+function edPanelPage(){
+  const pb=$("edpage"); pb.innerHTML=""; pb.appendChild(edMk("h3",{text:"整页"}));
+  const h=document.querySelector("header h1"), p=document.querySelector("header p");
+  pb.appendChild(edInput("大标题",ED.page.h1??(h?h.textContent:""),v=>{ ED.page.h1=v; edApplyPage(); },{area:true}));
+  pb.appendChild(edInput("导语",ED.page.lead??(p?p.textContent:""),v=>{ ED.page.lead=v; edApplyPage(); },{area:true,rows:3}));
+  const clr=edBtn("清除全部网页修改",()=>{ if(clr.dataset.c){ edAct(()=>{ ED={v:1,page:{},steps:{},ins:[]}; edSelK=null; edApplyPage(); edRebuild(); buildStepper(); }); }
+    else { clr.dataset.c=1; clr.textContent="再点一次确认清除"; setTimeout(()=>{ if(clr.isConnected){ delete clr.dataset.c; clr.textContent="清除全部网页修改"; } },3000); } },"warn");
+  pb.appendChild(edMk("div",{class:"edbar"},[clr]));
+}
+</script>
+<script>
+/* ===== UI 精修与放映模式（2026-10-11）：图标按钮、速度并入播放条、放映模式（控件自动隐藏、点击下一步、分段进度、换步淡入） ===== */
+(function(){
+  const $=id=>document.getElementById(id), stage=document.querySelector(".stage"), player=document.querySelector(".player");
+  const S=(p,extra)=>`<svg viewBox="0 0 24 24" aria-hidden="true"${extra||""}>${p}</svg>`;
+  const I={prev:S('<path d="M15 6l-6 6 6 6"/>'), next:S('<path d="M9 6l6 6-6 6"/>'),
+    play:S('<path class="f" d="M7 4.8v14.4L19.5 12z"/>'), pause:S('<rect class="f" x="6" y="4.5" width="4" height="15" rx="1.2"/><rect class="f" x="14" y="4.5" width="4" height="15" rx="1.2"/>'),
+    fs:S('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'), fsx:S('<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>')};
+  const setBtn=(b,svg,lbl,title)=>{ b.innerHTML=svg+`<span class="lbl">${lbl}</span>`; b.setAttribute("aria-label",lbl); if(title) b.title=title; };
+  setBtn($("prev"),I.prev,"上一步","上一步（←）");
+  $("next").innerHTML=`<span class="lbl">下一步</span>`+I.next; $("next").setAttribute("aria-label","下一步"); $("next").title="下一步（→）";
+  // 播放 / 全屏按钮的文字由原播放器代码写入；监听后换成图标（已是图标时不再处理，避免循环）
+  const watch=(b,fn)=>{ fn(); new MutationObserver(()=>{ if(!b.querySelector("svg")) fn(); }).observe(b,{childList:true,characterData:true,subtree:true}); };
+  watch($("play"),()=>{ const p=$("play"), s=p.textContent.trim()||"暂停"; p.innerHTML=(s==="暂停"?I.pause:I.play)+`<span class="sr">${s}</span>`; p.setAttribute("aria-label",s); p.title=s+"（空格）"; });
+  watch($("fs"),()=>{ const f=$("fs"), on=/退出/.test(f.textContent); setBtn(f,on?I.fsx:I.fs,on?"退出放映":"放映",on?"退出放映（Esc）":"全屏放映（F）"); });
+  // 速度并入播放条
+  const sl=document.querySelector('label[for="speed"]'); if(sl){ sl.classList.add("spd"); player.insertBefore(sl,$("fs")); }
+  // 放映模式附件：分段进度、页码、提示
+  const prog=document.createElement("div"); prog.className="fsprog"; prog.setAttribute("aria-hidden","true");
+  const cnt=document.createElement("span"); cnt.className="fscount";
+  const hint=document.createElement("div"); hint.className="fshint"; hint.setAttribute("role","status");
+  hint.innerHTML='点击画面或 <span class="kbd">→</span> 下一步　<span class="kbd">空格</span> 暂停　<span class="kbd">Esc</span> 退出';
+  stage.prepend(prog,cnt); stage.appendChild(hint);
+  function upd(){ const n=STEPS.length;
+    if(prog.childElementCount!==n){ prog.innerHTML=""; for(let i=0;i<n;i++){ const e=document.createElement("i"); e.appendChild(document.createElement("b")); prog.appendChild(e); } }
+    [...prog.children].forEach((e,i)=>{ e.classList.toggle("done",i<cur); e.firstChild.style.width = i===cur ? (100*t/STEPS[cur].dur)+"%" : ""; });
+    cnt.textContent=`${String(cur+1).padStart(2,"0")} / ${String(n).padStart(2,"0")}`;
+    const g=STEPS[cur].g+(STEPS[cur].hidden?"（已隐藏）":"");   // 放映时左上只写分组，页码放右上
+    $("idx").textContent = stage.classList.contains("is-fs") ? g : `第 ${cur+1} 步 / 共 ${n} 步 · ${g}`; }
+  const _render=render; render=function(){ _render(); upd(); };
+  const _go=go; go=function(i){ const c0=cur; _go(i); if(cur!==c0 || i===c0){ stage.classList.remove("swap"); void stage.offsetWidth; stage.classList.add("swap"); } upd(); };
+  // 放映：进入 / 退出
+  let idleT=null, hintT=null;
+  const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  function wake(){ if(!stage.classList.contains("is-fs")) return; stage.classList.add("ui-on"); stage.classList.remove("idle"); clearTimeout(idleT);
+    idleT=setTimeout(()=>{ if(!player.matches(":hover")){ stage.classList.remove("ui-on"); stage.classList.add("idle"); } },2000); }
+  function onFS(){ const on=isFS(); stage.classList.toggle("is-fs",on); stage.classList.remove("ui-on","idle");
+    if(on){ hint.classList.add("on"); clearTimeout(hintT); hintT=setTimeout(()=>hint.classList.remove("on"),2600); stage.classList.add("idle"); }
+    else hint.classList.remove("on");
+    render(); }
+  document.addEventListener("fullscreenchange",onFS); document.addEventListener("webkitfullscreenchange",onFS);
+  stage.addEventListener("mousemove",wake); stage.addEventListener("touchstart",wake,{passive:true});
+  // 放映时点击画面 = 下一步（动画没播完先跳到本步结尾，与 → 键一致）
+  function advance(){ if(t<STEPS[cur].dur-1e-3){ t=STEPS[cur].dur; playing=false; hold=0; $("play").textContent="播放"; render(); } else if(cur<STEPS.length-1) go(cur+1); }
+  $("svg").addEventListener("click",()=>{ if(stage.classList.contains("is-fs") && !document.body.classList.contains("editing")) advance(); });
+  // 翻页笔 / 幻灯片习惯键：PageDown、↓、Enter 下一步；PageUp、↑ 上一步；Home / End 首尾
+  document.addEventListener("keydown",e=>{ const tg=e.target, free=tg===document.body||tg===stage||tg===document.documentElement;
+    if(["INPUT","SELECT","TEXTAREA"].includes(tg.tagName)&&tg.type!=="range"||tg.isContentEditable||e.ctrlKey||e.metaKey||e.altKey) return;
+    if(e.key==="PageDown"||(e.key==="Enter"&&free)||(e.key==="ArrowDown"&&stage.classList.contains("is-fs"))){ e.preventDefault(); advance(); }
+    else if(e.key==="PageUp"||(e.key==="ArrowUp"&&stage.classList.contains("is-fs"))){ e.preventDefault(); go(cur-1); }
+    else if(e.key==="Home"&&free){ e.preventDefault(); go(0); } else if(e.key==="End"&&free){ e.preventDefault(); go(STEPS.length-1); } });
+  // 放映时字幕框高度按本步所有字幕里最高的那句定死：一步之内换句不再改变行高，画面也不会被挤得上下跳
+  const narr=$("caption"), meas=narr.cloneNode(false);
+  meas.removeAttribute("id"); meas.removeAttribute("aria-live"); meas.setAttribute("aria-hidden","true");
+  meas.style.cssText="position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;height:auto;transform:none;transition:none;animation:none;box-sizing:border-box";
+  stage.appendChild(meas);
+  const hOf=new Map(); let hMax=0;
+  function fitNarr(){ if(!stage.classList.contains("is-fs")){ narr.style.height=""; narr.style.paddingTop=""; return; }
+    narr.style.height=""; meas.style.width=narr.getBoundingClientRect().width+"px"; let h=0;
+    hOf.clear(); for(const [,txt] of STEPS[cur].cap){ meas.innerHTML=txt; const x=meas.getBoundingClientRect().height; hOf.set(txt,x); h=Math.max(h,x); }
+    narr.style.boxSizing="border-box"; narr.style.height=Math.ceil(h)+"px"; hMax=Math.ceil(h); centerNarr(); }
+  function centerNarr(){ if(!stage.classList.contains("is-fs")){ narr.style.paddingTop=""; return; }
+    const x=hOf.get(narr.dataset.c); narr.style.paddingTop = x ? Math.max(0,(hMax-x)/2)+"px" : ""; }
+  const _r2=render; render=function(){ _r2(); centerNarr(); };
+  const _go2=go; go=function(i){ _go2(i); fitNarr(); };
+  document.addEventListener("fullscreenchange",fitNarr); document.addEventListener("webkitfullscreenchange",fitNarr);
+  addEventListener("resize",fitNarr); if(document.fonts) document.fonts.ready.then(fitNarr);
+  upd();
+})();
+</script>
+</body>
+</html>
