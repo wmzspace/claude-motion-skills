@@ -58,7 +58,7 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 
 ```text
 /plugin marketplace add wmzspace/claude-motion-skills
-/plugin install kinetic-skills@claude-motion-skills
+/plugin install tweenkit@claude-motion-skills
 ```
 
 **Manual:**

@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "name": "kinetic-skills",
+      "name": "tweenkit",
       "source": "./",
       "description": "animated-native-pptx · kinetic-cut-video · animation-html"
     }

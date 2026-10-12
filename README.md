@@ -59,10 +59,10 @@
 
 ```text
 /plugin marketplace add wmzspace/claude-motion-skills
-/plugin install kinetic-skills@claude-motion-skills
+/plugin install tweenkit@claude-motion-skills
 ```
 
-装好后直接说「帮我做一个有动画的汇报 PPT」「做个 20 秒的炫酷自我介绍视频」「用动画解释一下这个训练流程」，Claude 会自动调用对应 skill；也可以显式输入 `/kinetic-skills:animation-html <主题>`。
+装好后直接说「帮我做一个有动画的汇报 PPT」「做个 20 秒的炫酷自我介绍视频」「用动画解释一下这个训练流程」，Claude 会自动调用对应 skill；也可以显式输入 `/tweenkit:animation-html <主题>`。
 
 ### 手动安装
 
