@@ -25,4 +25,5 @@ def main():
     print(f'# 创意方向（seed {seed}）' + (f' — {a.topic}' if a.topic else ''))
     for k, v in AXES.items(): print(f'- **{k}**：' + ' / '.join(r.sample(v, min(a.n, len(v)))))
     print('\n把选定的方向写进 storyboard.md，并说明每一项怎么落到这个题材上；与题材冲突的项可重抽（换 seed）或改，但要写理由。')
+    print('这些是全片的基调，不是每个镜头的配方：镜头之间仍要在时长、构图、文字入场、明暗和运镜方向/速度上变化（例如“微距拉远”是主语法，也不能 9 个镜头都同样拉远）。')
 if __name__ == '__main__': main()

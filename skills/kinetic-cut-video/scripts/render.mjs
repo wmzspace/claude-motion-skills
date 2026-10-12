@@ -1,6 +1,7 @@
 // node render.mjs <projectDir> info
 // node render.mjs <projectDir> stills <t1> <t2> ...     -> <projectDir>/stills/NN.png
 // node render.mjs <projectDir> frames <start> <end>     -> <projectDir>/frames/00000.png (skips existing; add --force to redo)
+// options for frames: --fps N (time = frame/N, default project FPS)  --samples N (override motion-blur samples)  --dir NAME (output folder, default frames)
 import { createRequire } from 'module';
 import { execSync } from 'child_process';
 import fs from 'fs'; import path from 'path';
@@ -13,7 +14,9 @@ function loadPlaywright() {
 const { chromium } = loadPlaywright();
 const [dirArg, mode, ...rest] = process.argv.slice(2);
 if (!dirArg || !mode) { console.error('usage: render.mjs <projectDir> info|stills|frames ...'); process.exit(2); }
-const DIR = path.resolve(dirArg), force = rest.includes('--force'), args = rest.filter(a => a !== '--force');
+const DIR = path.resolve(dirArg), force = rest.includes('--force');
+const opt = k => { const i = rest.indexOf('--' + k); return i >= 0 ? rest[i + 1] : undefined; };
+const args = rest.filter((a, i) => !a.startsWith('--') && !(i > 0 && ['--fps', '--samples', '--dir'].includes(rest[i - 1])));
 const browser = await chromium.launch({ args: ['--font-render-hinting=none', '--force-color-profile=srgb', '--disable-lcd-text'] });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
 let failed = false;
@@ -28,10 +31,12 @@ else if (mode === 'stills') {
   for (let i = 0; i < ts.length; i++) { await page.evaluate(t => renderAt(t), ts[i]); await page.screenshot({ path: `${DIR}/stills/${String(i).padStart(2, '0')}.png` }); }
   console.log('stills', ts.length, 'ms/frame', Math.round((Date.now() - t0) / Math.max(1, ts.length)));
 } else if (mode === 'frames') {
-  fs.mkdirSync(DIR + '/frames', { recursive: true }); const a = +args[0], b = +args[1];
-  for (let f = a; f < b; f++) { const p = `${DIR}/frames/${String(f).padStart(5, '0')}.png`;
+  const sub = opt('dir') || 'frames', fps = +(opt('fps') || info.FPS), ns = opt('samples');
+  if (ns) await page.evaluate(n => { window.__SAMPLES = n; }, +ns);
+  fs.mkdirSync(`${DIR}/${sub}`, { recursive: true }); const a = +args[0], b = +args[1];
+  for (let f = a; f < b; f++) { const p = `${DIR}/${sub}/${String(f).padStart(5, '0')}.png`;
     if (!force && fs.existsSync(p)) continue;
-    await page.evaluate(t => renderAt(t), f / info.FPS); await page.screenshot({ path: p + '.tmp.png' }); fs.renameSync(p + '.tmp.png', p);
+    await page.evaluate(t => renderAt(t), f / fps); await page.screenshot({ path: p + '.tmp.png' }); fs.renameSync(p + '.tmp.png', p);
     if (f % 60 === 0) console.log('frame', f); }
   console.log(failed ? 'FAILED' : 'DONE', a, b);
 }

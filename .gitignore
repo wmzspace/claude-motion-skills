@@ -12,3 +12,6 @@ stills/
 *.mp4
 stills_sheet.jpg
 qa_sheet.jpg
+preview/
+preview.mp4
+qa_report.txt
