@@ -1,70 +1,30 @@
 <!doctype html><html><head><meta charset="utf-8">
 <style>*{margin:0;padding:0}html,body{overflow:hidden;background:#000}canvas{display:block}</style></head>
 <body><canvas id="out"></canvas>
-<!-- 1) 配置：尺寸/帧率/配色/字体都在这里改。竖版用 {W:1080,H:1920}（镜头坐标需自行重排）。 -->
+<!--
+  空骨架。先按 SKILL.md 写好 storyboard.md（母题 + 分镜表），再在这里逐个实现镜头。
+  - 每个镜头从这个题材自己的视觉元素长出来；优先用 drawOn / noise1 / stg / cjk / word / blobs 等基础零件新写画法。
+  - FX.* 是现成镜头配方，全片最多用一半镜头、每个配方最多用一次，并且要改造成贴合题材的样子。
+  - 不要打开 examples/showreel 照抄；它只用来查某个函数怎么调用。
+-->
 <script>window.KCONF={W:1920,H:1080,FPS:60,
-  palette:{ /* ink 深底, paper 浅底, accent 强调色, accentHi 强调亮, warm 暖点缀, deep 强调暗, shade 暗部偏色 */ },
-  fonts:{ /* serif:'"Noto Serif CJK SC"', sans:'"Noto Sans CJK SC"', mono:'"DejaVu Sans Mono"' */ }};</script>
+  palette:{ /* 按题材定：ink 深底, paper 浅底, accent 强调色, accentHi, warm, deep, shade, mute, gray, cool */ },
+  fonts:{ /* serif / sans / mono，先用 fc-list 确认存在且有粗字重 */ },
+  /* 后期质感按 brief 定：干净 → caBase:0, flash:.12；胶片 → vignette:.45；强冲击 → caHit:16, punch:.07 */
+  caBase:1.6, caHit:13, flash:.3, punch:.05, vignette:.34};</script>
 <script src="engine.js"></script>
 <script>
-/* 2) 镜头：每个镜头一个函数 (g, t 绝对秒, u 镜头内秒)。这是 18 秒技法演示片，按你的分镜替换文案与镜头。 */
 const {ink:INK,paper:PAPER,accent:ACC,accentHi:ACCHI,warm:WARM,deep:DEEP,shade:SHADE,mute:MUTE,gray:GRAY}=PAL;
-const S=FONT.serif,SA=FONT.sans,M=FONT.mono;
 
-const s00=(g,t,u)=>{fillAll(g,'#0a0909');FX.converge(g,u/.5)};
-const s01=(g,t,u)=>{const an=ei(P(u,1.25,.25)),sc=1-an*.3,pop=spr(P(u,.28,.6),5,8)*sc;blobs(g,t,INK,[DEEP,ACC,DEEP],.45+1.7*Math.exp(-4*u));FX.shock(g,u);
-  FX.dial(g,CX,CY,392*pop,u,{al:P(u,.28,.2),text:'KINETIC CUT · MOTION REEL · 2026 · KINETIC CUT · MOTION REEL · 2026 · '});ring(g,CX,CY,318*pop,ACC,.5*P(u,.4,.2),2);
-  FX.star(g,CX,CY,250*lp(2.9,1,spr(P(u,0,.8),5,8))*sc,-2.6*(1-ex(P(u,0,1.3)))+u*.15-an*.6,P(u,0,.35)*1.2,ACC,.04,t)};
-const s02=(g,t,u)=>{fillAll(g,PAPER);g.translate(CX,CY);g.scale(1+u*.09,1+u*.09);g.translate(-CX,-CY);g.fillStyle=rgb(ACC);g.beginPath();g.arc(lp(2400,1340,ex(P(u,0,.4))),420,410,0,TAU);g.fill();
-  FX.echo(g,'你好',620,CX,CY,INK,1-ex(P(u,0,.45)));cjk(g,'你好',620,CX,CY,INK,j=>({s:st(u-j*.06,.3,1.1),al:u>=j*.06?1:0}))};
-const s03=(g,t,u)=>{const e=1-ex(P(u,0,.35));fillAll(g,ACC);g.fillStyle=rgb(INK);g.beginPath();g.arc(lp(-600,560,ex(P(u,0,.4))),650,340,0,TAU);g.fill();FX.speedLines(g,u,e);
-  cjk(g,'世界',620,CX-u*70,CY,PAPER,j=>({dx:e*1800*(1+j*.25),shx:-.6*e}))};
-const s04=(g,t,u)=>{blobs(g,t,INK,[DEEP,ACC,SHADE],.5+.9*Math.exp(-5*u));const L=FX.sweepWord(g,{str:'Kinetic',font:`700 380px ${S}`,base:650,u,sweep:[.36,.5],glitch:[.86,.14],seed:t});
-  g.fillStyle=rgb(ACC);g.fillRect(CX-L.w/2,722,L.w*ex(P(u,.28,.5)),12);tracked(g,'每 一 秒 都 是 一 个 镜 头',`400 32px ${SA}`,CX,826,lp(40,6,ex(P(u,.4,.8))),MUTE,ex(P(u,.4,.5)));
-  FX.star(g,CX,208,80*spr(P(u,.08,.5),5,8),u*1.2-2*(1-ex(P(u,.1,.9))),2,ACC,.04,t);ticks(g,CX,208,118,60,-u*.6,PAPER,.4*P(u,.3,.3))};
-const s05=(g,t,u)=>{fillAll(g,PAPER);FX.marquee(g,{unit:'设计 DESIGN ',font:`900 170px ${S}`,rowH:216,scroll:u*260+1700*(1-ex(P(u,0,.6))),band:ACC,bandGrow:spr(P(u,0,.45),6,8),fill:PAPER,stroke:INK});
-  FX.card(g,{x:1230,y:800,pop:spr(P(u,.12,.5),6,7),tab:'brief_01.md',text:'把想法，变成画面。',p:P(u,.3,.5)})};
-const CODE=['def render(shot, t):','    u = t - shot.start','    draw(shot, ease(u))','    return frame','','class Timeline:','    def __init__(self, bpm):','        self.beat = 60 / bpm','    def cut(self, n):','        return n * self.beat','','if __name__ == "__main__":','    render("go")',''];
-const s06=(g,t,u)=>{blobs(g,t,[14,13,13],[DEEP,SHADE],.45);FX.codeWall(g,u*230+800*(1-ex(P(u,0,.5))),{lines:CODE});FX.glitchCjk(g,'代码',340,CX,CY,1-P(u,0,.24));cjk(g,'代码',340,CX,CY,PAPER,j=>({s:st(u,.25,.5)}));
-  const bx=lp(110,650,spr(P(u,.04,.5),5,8));T(g,'{',`400 540px ${M}`,CX-bx,715,ACC);T(g,'}',`400 540px ${M}`,CX+bx,715,ACC);T(g,typed('$ build --fps 60  →  ✓ done',P(u,.3,.55)),`400 34px ${M}`,600,905,PAPER,.9,'left')};
-const s07=(g,t,u)=>{fillAll(g,ACC);const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,rgb(ACCHI,.25));gr.addColorStop(1,rgb(DEEP,.35));g.fillStyle=gr;g.fillRect(-200,-200,W+400,H+400);
-  FX.isoBars(g,u,{cx:1340,cy:240,hi:[[8,3],[3,7],[5,5]]});cjk(g,'数据',310,430,300,INK,j=>({s:st(u-j*.05,.28,.9),al:u>=j*.05?1:0}));
-  g.save();g.translate(110,930);const s=st(u,.3,.25);g.scale(s,s);T(g,'+'+Math.round(38*eo(P(u,.06,.75)))+'%',`700 270px ${S}`,0,0,PAPER,1,'left');g.restore();
-  T(g,'METRIC  /  一句话说明这个数字',`400 24px ${M}`,122,640,INK,P(u,.2,.2),'left');g.fillStyle=rgb(INK);g.fillRect(122,662,520*ex(P(u,.15,.6)),4)};
-const s08=(g,t,u)=>{blobs(g,t,INK,[DEEP,SHADE,DEEP],.55);FX.network(g,u,{cx:1180});cjk(g,'搜索',330,450,500,INK,j=>({s:st(u,.26,.7)}),30);cjk(g,'搜索',330,450,500,PAPER,j=>({s:st(u,.26,.7)}));
-  T(g,'NODES SCANNED  '+String(Math.round(148*eo(P(u,.08,.85)))).padStart(3,'0'),`400 28px ${M}`,128,760,MUTE,P(u,.15,.2),'left');g.fillStyle=rgb(ACC);g.fillRect(128,782,640*ex(P(u,.12,.7)),5)};
-const s09=(g,t,u)=>{fillAll(g,'#0d0c0c');FX.tunnel(g,u);cjk(g,'一镜一拍',270,CX,CY,PAPER,j=>({s:st(u-j*.11,.22,2.4),al:u>=j*.11?cl((u-j*.11)*14):0,col:j===1?ACC:null}));
-  tracked(g,'ONE SHOT PER BEAT',`400 26px ${M}`,CX,760,lp(70,26,ex(P(u,.45,.5))),MUTE,P(u,.45,.2))};
-const s10=(g,t,u)=>{blobs(g,t,INK,[DEEP,ACC,SHADE],.6);FX.sphere(g,{R:455*spr(P(u,0,.6),5,6),ry:u*1.1+2.6*(1-ex(P(u,0,1.1))),path:eio(P(u,.06,.85))});
-  const f=j=>({dy:(1-ex(P(u-j*.07,.04,.45)))*300,al:u>j*.07+.04?1:0,col:j?ACC:PAPER});g.globalAlpha=.9;cjk(g,'动起来',340,CX,CY,INK,j=>({...f(j),col:INK}),40);g.globalAlpha=1;cjk(g,'动起来',340,CX,CY,PAPER,f)};
-const STEPS=[['节拍','BEAT'],['镜头','SHOT'],['冲击','IMPACT'],['质感','TEXTURE']],SBG=[PAPER,ACC,INK,PAPER],SFG=[INK,PAPER,PAPER,ACC],sk=t=>Math.min(3,Math.floor((t-10)*4));
-const s11=(g,t)=>{const k=sk(t);FX.strobe(g,t-10-k*.25,k,{bg:SBG[k],fg:SFG[k],text:STEPS[k][0],sub:STEPS[k][1],num:'0'+(k+1),total:4})};
-const s12=(g,t,u)=>{fillAll(g,PAPER);FX.orbits(g,u,false,{cy:520});cjk(g,'更快',450,CX,520,INK,j=>{const s=spr(P(u-j*.07,0,.45),6,9);return{s:lp(1.6,1,s),al:u>=j*.07?1:0,rot:(j?1:-1)*(1-s)*.5+.045*Math.sin(u*7+j*2.2)}});FX.orbits(g,u,true,{cy:520});
-  T(g,'这里放一句副文案',`400 44px ${SA}`,CX,940,GRAY,ex(P(u,.3,.4)))};
-const s13=(g,t,u)=>{const e=1-ex(P(u,0,.45));fillAll(g,ACC);FX.guides(g,CX,510,470,250,ex(P(u,0,.35)));FX.outlineConverge(g,'更准',450,CX,510,PAPER,e,P(u,.14,.16));
-  g.fillStyle=rgb(PAPER);const uw=940*ex(P(u,.38,.4));g.fillRect(CX-uw/2,810,uw,12);T(g,'这里放一句副文案',`400 44px ${SA}`,CX,930,PAPER,ex(P(u,.45,.4)))};
-const s14=(g,t,u)=>{const GY=706,q=FX.slam(u);blobs(g,t,INK,[DEEP,SHADE],.4+.9*Math.exp(-5*u));FX.bricks(g,u,{gy:GY});FX.debris(g,u,{gy:GY});cjk(g,'更稳',450,CX,GY-232,PAPER,j=>({sy:q.sy,sx:q.sx,dy:.24*q.w*225}));
-  T(g,'这里放一句副文案',`400 44px ${SA}`,CX,190,MUTE,ex(P(u,.3,.4)))};
-const s15=(g,t,u)=>{fillAll(g,'#0d0c0c');FX.bands(g,u,[{text:'更快',bg:PAPER,fg:INK,dir:-1},{text:'更准',bg:ACC,fg:PAPER,dot:INK,dir:1},{text:'更稳',bg:INK,fg:PAPER,dir:-1}],{collapse:ei(P(u,.76,.24))})};
-// 结尾：粒子聚成标志（把 FX.sample 里的绘制换成你的 logo / 文字即可）
-const LOGO=FX.sample(c=>{FX.rays(12).forEach(ry=>{c.save();c.rotate(ry.a);c.beginPath();c.roundRect(-.03,-ry.w/2,ry.l+.03,ry.w,ry.w*.22);c.fill();c.restore()})});
-const s16=(g,t,u)=>{const sk2=ei(P(u,1.5,.3)),up=0,cy=345,R=178,rot=u*.1-.3;blobs(g,t,INK,[DEEP,ACC,SHADE],(.5+1.4*Math.exp(-4*u)+(u>1?1.1*Math.exp(-5*(u-1)):0))*(1-sk2));
-  g.save();g.translate(CX,500);g.rotate(sk2*1.4);g.scale(1-sk2,1-sk2);g.translate(-CX,-500);FX.shock(g,u,{cy,streaks:false,rings:1});FX.shock(g,u-1,{cy,streaks:false,rings:1});
-  ticks(g,CX,cy,262,90,u*.25,PAPER,.45*P(u,1,.3));FX.assemble(g,LOGO,u,{cy,R,rot,t});const solid=P(u,.94,.08);if(solid>0){g.globalAlpha=solid;FX.star(g,CX,cy,R*(1+.22*Math.exp(-8*Math.max(0,u-1))),rot,2,ACC,.04,t);g.globalAlpha=1}
-  if(u>=1){const v=u-1,s=st(v,.3,.55);g.save();g.translate(CX,660);g.scale(s,s);g.translate(-CX,-660);g.globalAlpha=cl(v*12);FX.sweepWord(g,{str:'Kinetic',font:`700 236px ${S}`,base:740,u:v,flip:false,sweep:[.22,.6]});g.restore();
-    tracked(g,'更快 · 更准 · 更稳',`400 30px ${SA}`,CX,812,lp(50,16,ex(P(v,.4,.7))),ACC,ex(P(v,.4,.5)))}
-  g.restore();FX.crt(g,u-1.72,{cy:500})};
+/* 镜头函数签名：(g, t 绝对秒, u 镜头内秒)。画面只能依赖 t/u；随机用 rng(seed)。 */
+const shot01=(g,t,u)=>{
+  fillAll(g,INK);
+  T(g,'SHOT 01',`400 28px ${FONT.mono}`,CX,CY-40,MUTE,1);
+  T(g,'按 storyboard.md 写第一个镜头',`700 64px ${FONT.sans}`,CX,CY+50,PAPER,ex(P(u,0,.4)));
+};
 
-/* 3) 镜头表 + 重击表。hud: HUD 颜色（[上,下] 或单色，false 关闭）；bloom: 深底 .5~.6，浅底 .07~.14。 */
-K.start({duration:18,hud:{title:'KINETIC CUT — DEMO REEL'},
- shots:[
-  [0,.5,s00,{label:'00 — SIGNAL',bloom:.6}],[.5,2,s01,{label:'01 — IGNITION',bloom:.6}],
-  [2,2.5,s02,{label:'02 — STAMP',hud:INK,bloom:.08}],[2.5,3,s03,{label:'02 — WHIP',bloom:.14}],[3,4,s04,{label:'02 — WORDMARK',bloom:.55}],
-  [4,5,s05,{label:'03 — MARQUEE',hud:INK,bloom:.08}],[5,6,s06,{label:'04 — CODE WALL',bloom:.5}],[6,7,s07,{label:'05 — ISO BARS',hud:[INK,PAPER],bloom:.12}],[7,8,s08,{label:'06 — NETWORK',bloom:.55}],
-  [8,9,s09,{label:'07 — TUNNEL',bloom:.6}],[9,10,s10,{label:'08 — SPHERE',bloom:.55}],[10,11,s11,{label:'09 — STROBE',hud:t=>SFG[sk(t)],bloom:.1}],
-  [11,12,(g,t,u)=>{blobs(g,t,INK,[DEEP,SHADE],.55);const q=ei(P(u,.62,.28)),q2=ei(P(u,.9,.1));g.translate(CX,CY);g.scale(1-q2*.99,1-q*.988);g.translate(-CX,-CY);FX.checklist(g,u,STEPS);if(q>0){g.fillStyle=rgb(ACCHI,q);g.fillRect(180,60,1560,960)}},{label:'09 — CHECKLIST',bloom:.5}],
-  [12,13,s12,{label:'10 — ORBITS',hud:INK,bloom:.07}],[13,14,s13,{label:'11 — OUTLINES',bloom:.14}],[14,15,s14,{label:'12 — SLAM',bloom:.5}],[15,16,s15,{label:'13 — BANDS',hud:[INK,PAPER],bloom:.12}],
-  [16,18.01,s16,{label:'14 — LOCKUP',bloom:.6}]],
- /* [时间, 强度, 震屏像素]：每个切点一条，最重的镜头强度 1.3~1.4 并加震屏 */
- hits:[[.5,1,12],[2,1,0],[2.5,.6,0],[3,.8,0],[4,1,0],[5,1,0],[6,1,0],[7,1,0],[8,1,0],[9,1,0],[10,.5,0],[10.25,.5,0],[10.5,.5,0],[10.75,.5,0],[11,.7,0],[12,1,0],[13,1,0],[14,1.4,26],[15,1,0],[16,1.4,12],[17,1,6]]});
+K.start({duration:2, hud:{show:false /* 装饰层按 brief 定；取景框+时间码只是其中一种 */, title:''},
+  shots:[ [0,2.01,shot01,{label:'01 — NAME',bloom:.5}] ],
+  /* [时间, 强度, 震屏px]：每个切点一条；全片最重的 1–2 处 1.3–1.4 并加震屏 */
+  hits:[ ]});
 </script></body></html>

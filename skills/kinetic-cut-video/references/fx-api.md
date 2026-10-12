@@ -1,5 +1,7 @@
 # engine.js 速查
 
+> 零件优先：新镜头先用「文字」「图元」「新技法零件」三节的函数自己写。`FX.*` 是做好的镜头配方，全片最多用一半镜头、每个最多一次，并要改造成题材的样子（见 `motif-method.md`）。
+
 所有函数都是全局的。坐标单位是像素，默认画幅 1920×1080；`W,H,CX,CY` 是画幅与中心。颜色一律是 `[r,g,b]` 数组，取自 `PAL`（`ink paper accent accentHi warm deep shade mute gray cool`）。字体族在 `FONT.serif / sans / mono`。
 
 ## 时间与缓动
@@ -26,6 +28,16 @@
 - `lay(str, font)`：量出每个字的位置 `{gl:[{ch,x,w}], w}`。
 - `layer(draw)`：返回一张离屏整幅画布，用于 `source-atop` 遮罩、切片故障等。
 
+## 新技法零件
+
+| 函数 | 用途 |
+|---|---|
+| `drawOn(g, pts, p, col, lw, al)` | 按进度 p 描一条折线（走线、波形、航线、签名、笔画），返回笔头坐标 |
+| `noise1(x, seed)` | 平滑噪声 [-1,1]：信号抖动、手绘感、液体扰动 |
+| `stg(u, i, gap, d, ease)` | 第 i 个元素的错峰进度，代替手写 `ex(P(u-i*gap,0,d))` |
+| `layer(draw)` | 离屏整幅画布：遮罩擦出、扫光、切片故障 |
+| `FX.sample(draw, n)` + `FX.assemble(g, pts, u, o)` | 把任意形状（标志路径、文字、器物轮廓）变成粒子聚合 |
+
 ## 图元
 
 `fillAll(g, col)` 铺满底色（含出血） · `blobs(g, t, base, [cols], amp)` 流动光斑背景（amp 0.4 平静，1.5+ 爆闪，可乘 `Math.exp(-4*u)` 做冲击后回落） · `ring(g,cx,cy,r,col,al,lw,dash,rot)` · `ticks(g,cx,cy,r,n,rot,col,al)` 刻度环。
@@ -36,7 +48,7 @@
 |---|---|---|
 | 光线汇聚 | `FX.converge(g, u01, {cx,cy,colA,colB})` | 开场蓄力、转场吸入 |
 | 冲击波 + 粒子 | `FX.shock(g, u, {cx,cy,cols,rings,streaks,scale})` | 爆开、发布、重击 |
-| 占位徽标 | `FX.star(g,cx,cy,R,rot,grow,col,breath,t,n)`；`FX.rays(n)` 取射线数据 | 没有 logo 时的标志 |
+| 射线徽标 | `FX.star(g,cx,cy,R,rot,grow,col,breath,t,n)`；`FX.rays(n)` 取射线数据 | ⚠ 近似 Claude 标志，只在介绍 Claude 时用 |
 | 仪表环 | `FX.dial(g,cx,cy,r,u,{text,al})` | 给标志加精密感 |
 | 描边回声 | `FX.echo(g,str,size,cx,cy,col,e)`（e:1→0） | 大字砸入的余震 |
 | 速度线 | `FX.speedLines(g,u,e,col,dir)` | 快、甩入 |
@@ -58,7 +70,7 @@
 | 输入框 / 行动号召 | `FX.pill(g,v,{y,text,w,h,hit})` | CTA、搜索、对话 |
 | 关机线 | `FX.crt(g,u,{cy})`（约 0.55s） | 干脆的结尾 |
 
-组合惯例（见 `index.html`）：
+组合惯例（演示片 `examples/showreel/index.html` 里有完整用法）：
 - **砸字**：`cjk(..., j=>({s:st(u-j*.06,.3,1.1), al:u>=j*.06?1:0}))`，字与字错开 0.05–0.11s。
 - **甩入**：`e=1-ex(P(u,0,.35))`，`dx:e*1800, shx:-.6*e`，配 `FX.speedLines`。
 - **整组塌缩/吸走**：`g.translate(CX,CY); g.scale(1-q2, 1-q); g.translate(-CX,-CY)`，`q=ei(P(u,.62,.28))`，在镜头最后 0.3s 把画面压成一条线或一个点，下一个镜头在切点爆开。

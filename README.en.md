@@ -10,7 +10,7 @@ English · [中文](README.md)
 
 <img src="docs/images/kinetic-cut-video.gif" width="720" alt="kinetic-cut-video demo">
 
-<sub>↑ The 18-second demo reel that ships with <code>kinetic-cut-video</code> (original is 1080p60 with a synthesized soundtrack)</sub>
+<sub>↑ The 18-second technique reel that ships with <code>kinetic-cut-video</code> (original is 1080p60 with a synthesized soundtrack). It only shows what the engine can do; real videos are designed from scratch for each subject</sub>
 
 </div>
 
@@ -40,9 +40,10 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 
 <img src="docs/images/kinetic-cut-video-stills.jpg" width="720" alt="kinetic-cut-video stills">
 
-- 20+ parameterized shot techniques: shockwaves, speed-line whips, code walls, isometric bars, node networks, tunnels, dot spheres, strobe cards, particle logo assembly, a CRT switch-off…
+- Starts from a randomized creative brief and the subject's own visual motifs, so shots, camera moves, transitions, palette, type and music are new every time; a "reskin test" catches template reuse before delivery
+- The engine supplies impact, motion blur, bloom, chromatic aberration and drawing parts (draw-on paths, noise, staggering, masks, particle assembly of any shape), plus 20+ adaptable shot recipes
 - Every frame is a pure function of time, so rendering runs in **parallel and can resume** after an interruption
-- A small numpy synth builds a soundtrack that hits on every cut
+- A small numpy synth builds a soundtrack that hits on every cut, with plucks, saw leads, 808 subs, vinyl noise, modes and drum patterns
 
 ### 📽️ animation-html
 
@@ -51,6 +52,11 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 - Space to pause, arrow keys to step, `F` for presenter mode, light and dark themes
 - Press `E` to edit in the page: drag elements, change text, add shapes, then `Ctrl+S` writes the changes back into the HTML
 - Example: [`examples/tcp-handshake_animation.html`](examples/tcp-handshake_animation.html)
+
+## Design principles
+
+- The tool code handles *how things are placed and move*, never *what they look like*: visuals, layout, motion, camera, palette, type, music and copy are designed per piece.
+- Against templating: each skill has a `brief.py` that draws a creative direction to break habits; examples are API references only; before delivery, swap the copy for another subject — if the visuals still work, they are a template and get redone.
 
 ## Install
 

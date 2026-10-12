@@ -253,7 +253,9 @@ function label(x,y,s,a){ return tx(x,y,s,Object.assign({"font-size":14,"font-wei
 /* 每一步：g 分组（步骤条上的章节名）、nm 步骤条短名、title 大标题、key 一句话要点、dur 秒数、
    cap [[起始秒, 旁白 HTML], ...]（<b> 强调、<em> 警示）、note 细节与出处、draw(t) 按时间 t 画整帧（每帧清空重画）。
    画布 viewBox 960×500。常用：band() 色块分区、label()/tx() 文字、arrow()、chip()、el() 任意 SVG、
-   seg(t,a,b) 0→1 线性进度、E(t,a,b) 缓动进度、photo()/boxOn() 画 D.img 与框。颜色只用 var(--token)。 */
+   seg(t,a,b) 0→1 线性进度、E(t,a,b) 缓动进度、photo()/boxOn() 画 D.img 与框。颜色只用 var(--token)。
+   下面两步只演示字段写法。真正的画面要画这个主题自己的对象（报文、张量、曲线、器件……），方框加箭头只用于总览步骤；
+   chip()/plate()/beam() 来自光学芯片的例子，主题无关时不要用。 */
 const STEPS = [
 {g:"第一章", nm:"示例一", title:"示例：一句话说清这一步在干什么", key:"要点：一句话", dur:8,
  cap:[[0,"第一段旁白：先说结论，再给数字。"],[4,"第二段旁白：<b>强调</b>或<em>警示</em>。"]],

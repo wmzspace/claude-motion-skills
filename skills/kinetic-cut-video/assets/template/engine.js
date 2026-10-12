@@ -40,6 +40,16 @@ const _LY=mk(W,H),_ly=_LY.getContext('2d');
 /* layer(draw): returns an offscreen canvas the size of the frame, cleared, after running draw(ctx). Use for sweeps/glitch/masks. */
 function layer(draw){_ly.setTransform(1,0,0,1,0,0);_ly.globalAlpha=1;_ly.globalCompositeOperation='source-over';_ly.clearRect(0,0,W,H);draw(_ly);return _LY}
 
+// ---- building blocks for NEW techniques (prefer these over whole FX recipes) ----
+/* stg: staggered progress for item i. e.g. a=stg(u,i,.05,.4,ex) */
+const stg=(u,i,gap=.05,d=.4,ease=ex)=>ease(P(u,i*gap,d));
+/* noise1: smooth deterministic 1-D value noise in [-1,1] — organic jitter, signal wobble, hand-drawn lines. */
+const noise1=(x,seed=0)=>{const h=n=>{const v=Math.sin(n*127.1+seed*311.7)*43758.5453;return v-Math.floor(v)},i=Math.floor(x),f=x-i,k=f*f*(3-2*f);return lp(h(i),h(i+1),k)*2-1};
+/* drawOn: stroke a polyline [[x,y],...] up to fraction p of its length (traces, waveforms, routes, signatures). Returns the head point. */
+function drawOn(g,pts,p,col,lw=3,al=1){if(pts.length<2||p<=0)return pts[0];const L=[0];for(let i=1;i<pts.length;i++)L.push(L[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));const end=L[L.length-1]*cl(p);
+  g.save();g.strokeStyle=rgb(col,al);g.lineWidth=lw;g.lineCap='round';g.lineJoin='round';g.beginPath();g.moveTo(pts[0][0],pts[0][1]);let hx=pts[0][0],hy=pts[0][1];
+  for(let i=1;i<pts.length;i++){if(L[i]<=end){g.lineTo(pts[i][0],pts[i][1]);hx=pts[i][0];hy=pts[i][1]}else{const f=(end-L[i-1])/(L[i]-L[i-1]||1);hx=lp(pts[i-1][0],pts[i][0],f);hy=lp(pts[i-1][1],pts[i][1],f);g.lineTo(hx,hy);break}}g.stroke();g.restore();return[hx,hy]}
+
 // ======================= FX recipes (all parameterised) =======================
 const FX={};
 const _STK=(()=>{const r=rng(21);return Array.from({length:760},()=>({a:r()*TAU,r:.15+r()*.7,w:1+r()*3.2,c:r(),d:r()*.32}))})();
@@ -52,7 +62,8 @@ const _BP=(()=>{const r=rng(8);return Array.from({length:260},()=>({a:r()*TAU,v:
 FX.shock=(g,u,o={})=>{if(u<0)return;const cx=o.cx??CX,cy=o.cy??CY,cols=o.cols||[PAL.accentHi,PAL.warm,PAL.paper],k=o.scale??1,n=o.rings??3;g.save();g.lineCap='round';
   for(let i=0;i<n;i++){const p=P(u,i*.09,.95);if(p<=0||p>=1)continue;g.strokeStyle=rgb(i?(o.ringCol||PAL.accent):cols[0],(1-p)*.8);g.lineWidth=14*(1-p)+1;g.beginPath();g.arc(cx,cy,(180+1500*eo5(p))*k,0,TAU);g.stroke()}
   if(o.streaks!==false)for(const b of _BP){const r=(150+b.v*(1-Math.exp(-4.2*u))/4.2)*k,l=(b.v*Math.exp(-4.2*u)*.035+2)*k,al=(1-P(u,.7,.8))*(.6+.4*Math.sin(u*20+b.tw));if(al<=0)continue;g.strokeStyle=rgb(cols[Math.floor(b.c*cols.length)],al);g.lineWidth=b.w;g.beginPath();g.moveTo(cx+Math.cos(b.a)*r,cy+Math.sin(b.a)*r);g.lineTo(cx+Math.cos(b.a)*(r+l),cy+Math.sin(b.a)*(r+l));g.stroke()}g.restore()};
-/* star: placeholder emblem (n irregular rays). Replace with your own logo drawing when there is one. grow 0..~1.2 */
+/* star: n irregular rays. ⚠ This shape is close to the Claude logo — use it ONLY when the video is about Claude/Anthropic.
+   For any other subject draw the subject's own mark (its logo paths, initials, an object from its motif) and feed it to FX.sample/FX.assemble. grow 0..~1.2 */
 const _RAY=n=>{const r=rng(11);return Array.from({length:n},(_,i)=>({a:i/n*TAU+(r()-.5)*.16-PI/2,l:[1,.8,.93,.76][i%4]*(.96+r()*.08),w:.15+r()*.03}))},_RC={};
 FX.rays=(n=12)=>_RC[n]||(_RC[n]=_RAY(n));
 FX.star=(g,cx,cy,R,rot=0,grow=2,col=PAL.accent,breath=0,t=0,n=12)=>{if(R<=0)return;g.save();g.translate(cx,cy);g.rotate(rot);g.fillStyle=rgb(col);FX.rays(n).forEach((ry,i)=>{const gi=spr(P(grow,i*.04,.56),5,8);if(gi<=.001)return;const L=R*ry.l*gi*(1+breath*Math.sin(t*3.1+i*1.9)),h=R*ry.w;g.save();g.rotate(ry.a);g.beginPath();g.roundRect(-R*.03,-h/2,L+R*.03,h,h*.22);g.fill();g.restore()});g.restore()};
@@ -162,7 +173,7 @@ FX.strobe=(g,u,k,o)=>{const e=ex(P(u,0,.2)),BG=o.bg,FG=o.fg,sz=o.size||H*.52;fil
 
 // ======================= master: camera, HUD, motion blur, post =======================
 const K={FX,conf:KC};
-K.start=function(cfg){const SH=cfg.shots.map(s=>Array.isArray(s)?{a:s[0],b:s[1],draw:s[2],...(s[3]||{})}:s),HITS=cfg.hits||[],DUR=cfg.duration||SH[SH.length-1].b,hud=Object.assign({show:true,title:'',fadeOut:.9},cfg.hud||{}),fade=Object.assign({in:.12,out:.15},cfg.fade||{});
+K.start=function(cfg){const SH=cfg.shots.map(s=>Array.isArray(s)?{a:s[0],b:s[1],draw:s[2],...(s[3]||{})}:s),HITS=cfg.hits||[],DUR=cfg.duration||SH[SH.length-1].b,hud=Object.assign({show:false,title:'',fadeOut:.9},cfg.hud||{}),fade=Object.assign({in:.12,out:.15},cfg.fade||{});
   const env=(t,k)=>{let v=0;for(const[t0,s]of HITS){const u=t-t0;if(u>=0&&u<1.2)v+=s*Math.exp(-k*u)}return v};K.env=env;
   const out=document.getElementById('out')||document.body.appendChild(Object.assign(mk(W,H),{id:'out'}));out.width=W;out.height=H;
   const octx=out.getContext('2d',{alpha:false}),sub=mk(W,H),g0=sub.getContext('2d',{alpha:false}),ACC=mk(W,H),actx=ACC.getContext('2d',{alpha:false});

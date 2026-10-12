@@ -110,14 +110,16 @@ def card(sl, x, y, w, h, name=None):
     g = group(sl, name); box(g.shapes, x, y, w, h, T['card'], alpha=.94); return g
 
 
-def new(bg, label):
-    """New slide: background image assets/<bg>.jpg, top-right tag, page label, progress bar."""
+def new(bg, label, chrome=True):
+    """New slide: background image assets/<bg>.jpg; with chrome=True also the top-right tag, page label and progress bar.
+    Use chrome=False for full-bleed covers, chapter pages, photo or quote pages that should not carry the frame."""
     A.clear(); idx = S['n']; S['n'] += 1; N = S['total']
     sl = S['prs'].slides.add_slide(S['prs'].slide_layouts[6])
     _, rid = sl.part.get_or_add_image_part(f'assets/{bg}.jpg')
     sl._element.find(qn('p:cSld')).insert(0, etree.fromstring(
         f'<p:bg {NS} xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
         f'<p:bgPr><a:blipFill><a:blip r:embed="{rid}"/><a:stretch><a:fillRect/></a:stretch></a:blipFill><a:effectLst/></p:bgPr></p:bg>'))
+    if not chrome: return sl
     if S['tag']: text(sl.shapes, 1092, 38, 700, 34, S['tag'], 12, T['on_bg_soft'], True, R)
     text(sl.shapes, 128, 984, 900, 32, f'{idx + 1:02d} / {N:02d}　{label}', 12, T['on_bg'], True)
     sw = (1664 - (N - 1) * 10) / N
