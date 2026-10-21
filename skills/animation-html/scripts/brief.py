@@ -2,7 +2,8 @@
 """创意方向抽签：每条维度随机抽一项，用来打破"每个讲解动画都是方框加箭头"的惯性。
 用法：python3 brief.py "<主题>" [--seed N] [--n 2]
 抽到的项是起点不是命令：和主题明显冲突可以重抽或改，但要写明理由。"""
-import argparse, random, time
+import argparse, random, signal, time
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)   # allow `brief.py | head`
 AXES = {
  '视觉隐喻': ['画真实对象本身（报文、张量、器件……）', '地铁线路图', '仪表盘', '显微镜/放大镜下', '剖面图', '工厂流水线', '地图与路线', '故事分镜', '游戏关卡'],
  '美术风格': ['线稿', '扁平色块', '等距 3D', '黑板粉笔', '蓝图', '纸张手绘', '终端字符', '信息图'],

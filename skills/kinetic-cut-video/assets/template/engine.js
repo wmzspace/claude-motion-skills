@@ -20,10 +20,24 @@ function lay(str,font){const k=str+'|'+font;if(_LC[k])return _LC[k];_m.font=font
 function T(g,str,font,x,y,col,al=1,align='center'){if(al<=.003)return;g.font=font;g.textAlign=align;g.fillStyle=rgb(col,al);g.fillText(str,x,y)}
 function TS(g,str,font,x,y,col,lw,al=1,align='center'){if(al<=.003)return;g.font=font;g.textAlign=align;g.strokeStyle=rgb(col,al);g.lineWidth=lw;g.lineJoin='round';g.strokeText(str,x,y)}
 function tracked(g,str,font,cx,y,sp,col,al=1){if(al<=.003)return;const L=lay(str,font),n=L.gl.length,x0=cx-(L.w+sp*(n-1))/2;g.font=font;g.textAlign='left';g.fillStyle=rgb(col,al);L.gl.forEach((q,k)=>g.fillText(q.ch,x0+q.x+k*sp,y))}
-/* cjk: full-width glyphs, vertically centred on cy. fn(j)->{s,sx,sy,rot,shx,dx,dy,al,col}; stroke>0 draws outline. */
-function cjk(g,str,size,cx,cy,col,fn,stroke=0,weight=900,family=FONT.serif){const ch=[...str],n=ch.length;g.font=`${weight} ${size}px ${family}`;g.textAlign='center';g.lineJoin='round';
-  for(let j=0;j<n;j++){const o=fn?fn(j):{};if(o.al===0)continue;const s=o.s??1;g.save();g.translate(cx+(j-(n-1)/2)*size+(o.dx||0),cy+(o.dy||0));if(o.rot)g.rotate(o.rot);if(o.shx)g.transform(1,0,o.shx,1,0,0);g.scale((o.sx??1)*s,(o.sy??1)*s);g.globalAlpha*=(o.al??1);
+/* Mixed-script text. Full-width (CJK, kana, hangul, full-width punctuation) glyphs advance by `size`; every other glyph
+   (Latin, digits, symbols) advances by its measured width, so English words keep normal letter spacing. */
+const isWide=c=>{const p=c.codePointAt(0);return(p>=0x1100&&p<=0x115F)||(p>=0x2E80&&p<=0xA4CF)||(p>=0xAC00&&p<=0xD7A3)||(p>=0xF900&&p<=0xFAFF)||(p>=0xFE30&&p<=0xFE4F)||(p>=0xFF00&&p<=0xFF60)||(p>=0xFFE0&&p<=0xFFE6)||p>=0x20000};
+function advances(str,size,weight=900,family=FONT.serif){const ch=[...str];if(ch.every(isWide))return ch.map(()=>size);_m.font=`${weight} ${size}px ${family}`;return ch.map(c=>isWide(c)?size:_m.measureText(c).width)}
+/* textW: width cjk() will occupy.  fitSize: largest size <= size whose width fits maxW. */
+const textW=(str,size,weight=900,family=FONT.serif)=>advances(str,size,weight,family).reduce((a,b)=>a+b,0);
+const fitSize=(str,size,maxW,weight=900,family=FONT.serif)=>{const w=textW(str,size,weight,family);return w>maxW?size*maxW/w:size};
+/* cjk: glyph-by-glyph text, vertically centred on cy, works for Chinese, English and mixed strings.
+   fn(j)->{s,sx,sy,rot,shx,dx,dy,al,col}; stroke>0 draws outline. */
+function cjk(g,str,size,cx,cy,col,fn,stroke=0,weight=900,family=FONT.serif){const ch=[...str],n=ch.length,adv=advances(str,size,weight,family),tot=adv.reduce((a,b)=>a+b,0),allWide=ch.every(isWide);
+  g.font=`${weight} ${size}px ${family}`;g.textAlign='center';g.lineJoin='round';let acc=0;
+  for(let j=0;j<n;j++){const x=allWide?cx+(j-(n-1)/2)*size:cx-tot/2+acc+adv[j]/2;acc+=adv[j];const o=fn?fn(j):{};if(o.al===0)continue;const s=o.s??1;g.save();g.translate(x+(o.dx||0),cy+(o.dy||0));if(o.rot)g.rotate(o.rot);if(o.shx)g.transform(1,0,o.shx,1,0,0);g.scale((o.sx??1)*s,(o.sy??1)*s);g.globalAlpha*=(o.al??1);
     if(stroke){g.strokeStyle=rgb(o.col||col);g.lineWidth=stroke/(s||1);g.strokeText(ch[j],0,.36*size)}else{g.fillStyle=rgb(o.col||col);g.fillText(ch[j],0,.36*size)}g.restore()}}
+/* condensed: draw fn() squashed horizontally by sx around (cx,cy) — compressed/condensed type without a condensed font. */
+function condensed(g,sx,cx,cy,fn){g.save();g.translate(cx,cy);g.scale(sx,1);g.translate(-cx,-cy);fn();g.restore()}
+/* wrap: break a string into lines no wider than maxW (spaces for Latin, any glyph for CJK). Returns array of lines. */
+function wrap(str,font,maxW){_m.font=font;const toks=str.match(/[⺀-￿]|[^\s⺀-￿]+\s*|\s+/g)||[],lines=[];let cur='';
+  for(const tk of toks){const t2=cur+tk;if(cur&&_m.measureText(t2.trimEnd()).width>maxW){lines.push(cur.trimEnd());cur=tk.trimStart()}else cur=t2}if(cur.trim())lines.push(cur.trimEnd());return lines}
 /* word: proportional (Latin) glyphs on a baseline, centred on cx. fn(j)->{s,sx,sy,rot,dx,dy,al,col} pivot = glyph bottom-centre. */
 function word(g,str,font,cx,base,col,fn){const L=lay(str,font),x0=cx-L.w/2;g.font=font;g.textAlign='center';L.gl.forEach((q,j)=>{const o=fn?fn(j):{};if(o.al===0)return;const s=o.s??1;g.save();g.translate(x0+q.x+q.w/2+(o.dx||0),base+(o.dy||0));if(o.rot)g.rotate(o.rot);g.scale(Math.max(.001,(o.sx??1)*s),(o.sy??1)*s);g.globalAlpha*=(o.al??1);g.fillStyle=rgb(o.col||col);g.fillText(q.ch,0,0);g.restore()});return L}
 function typed(str,p){const a=[...str];return a.slice(0,Math.floor(cl(p)*a.length+.01)).join('')}
@@ -131,7 +145,7 @@ FX.orbits=(g,u,front,o={})=>{const cx=o.cx??CX,cy=o.cy??CY,L=o.list||[[660,170,-
   L.forEach(([a,b,tilt,spd,col,sz],k)=>{const p=eo(P(u,k*.05,.35));if(p<=0)return;g.save();g.translate(cx,cy);g.rotate(tilt);g.strokeStyle=rgb(lc,.5);g.lineWidth=2.5;g.beginPath();if(front)g.ellipse(0,0,a,b,0,0,PI*Math.min(1,p*2));else g.ellipse(0,0,a,b,0,PI,PI+PI*Math.max(0,p*2-1));g.stroke();
     for(let m=10;m>=0;m--){const th=(u-m*.012)*spd+k*2.1,d=Math.sin(th);if((d>=0)!==front)continue;g.fillStyle=rgb(col,m?.45*(1-m/11):1);g.beginPath();g.arc(Math.cos(th)*a,Math.sin(th)*b,Math.max(1,(sz/2-m*1.2)*(1+.35*d)),0,TAU);g.fill()}g.restore()})};
 /* outlineConverge: stacked outlines above & below collapse into the solid word. e: 1→0, solid alpha separately. */
-FX.outlineConverge=(g,str,size,cx,cy,col,e,solidAl=1,n=5,gap=78)=>{g.save();if(e>.004)for(let k=n;k>=1;k--)for(const d of[-1,1]){g.globalAlpha=.75*(1-k/(n+2));cjk(g,str,size,cx,cy+d*k*gap*e,col,null,3)}g.restore();g.save();cjk(g,str,size,cx,cy,col,j=>({al:solidAl,s:1+.04*e}));g.restore()};
+FX.outlineConverge=(g,str,size,cx,cy,col,e,solidAl=1,n=5,gap=78)=>{size=fitSize(str,size,W*.9);g.save();if(e>.004)for(let k=n;k>=1;k--)for(const d of[-1,1]){g.globalAlpha=.75*(1-k/(n+2));cjk(g,str,size,cx,cy+d*k*gap*e,col,null,3)}g.restore();g.save();cjk(g,str,size,cx,cy,col,j=>({al:solidAl,s:1+.04*e}));g.restore()};
 /* guides: design-tool guide lines sliding in to frame a box. p 0..1 */
 FX.guides=(g,cx,cy,hw,hh,p,col=PAL.paper)=>{g.fillStyle=rgb(col,.55);g.fillRect(lp(-200,cx-hw,p),-200,2,H+400);g.fillRect(lp(W+200,cx+hw,p),-200,2,H+400);g.fillRect(-200,lp(-200,cy-hh,p),W+400,2);g.fillRect(-200,lp(H+200,cy+hh,p),W+400,2)};
 /* slam: squash/rebound factors for something that lands at u=0. returns {sx,sy,w} */
@@ -163,10 +177,10 @@ FX.pill=(g,v,o)=>{const cx=o.cx??CX,y=o.y,w=(o.w||920)*spr(P(v,.02,.5),6,7),h=o.
 /* crt: "TV switching off" — a dot pops, stretches into a line, vanishes. u seconds (uses ~0.55s). */
 FX.crt=(g,u,o={})=>{if(u<0||u>.56)return;const cx=o.cx??CX,cy=o.cy??CY,a=spr(P(u,0,.2),6,9),w=u<.28?18*a:lp(18,W*.78,ex(P(u,.28,.12)))*(1-ei(P(u,.38,.16))),h=u<.28?18*a:lp(18,3,P(u,.28,.07));g.fillStyle=o.col||'#FFD9C8';g.beginPath();g.roundRect(cx-w/2,cy-h/2,w,h,h/2);g.fill()};
 /* checklist: rows sliding in from alternating sides with drawn check marks. rows:[[big,small],...] */
-FX.checklist=(g,u,rows,o={})=>{const x0=o.x??W*.17,y0=o.y??H*.23,rh=o.rowH||190,sz=o.size||150,fg=o.fg||PAL.paper,A=o.accent||PAL.accent,wd=o.w||W*.66;rows.forEach((r,k)=>{const e=ex(P(u-k*.07,0,.35)),y=y0+k*rh,dx=(1-e)*(k%2?-1300:1300);T(g,String(k+1).padStart(2,'0'),`400 30px ${FONT.mono}`,x0+dx,y+10,A,1,'left');T(g,r[0],`900 ${sz}px ${FONT.serif}`,x0+100+dx,y+52,fg,1,'left');if(r[1])T(g,r[1],`400 26px ${FONT.mono}`,x0+130+[...r[0]].length*sz+dx,y+10,PAL.mute,1,'left');
+FX.checklist=(g,u,rows,o={})=>{const x0=o.x??W*.17,y0=o.y??H*.23,rh=o.rowH||190,sz=o.size||150,fg=o.fg||PAL.paper,A=o.accent||PAL.accent,wd=o.w||W*.66;rows.forEach((r,k)=>{const e=ex(P(u-k*.07,0,.35)),y=y0+k*rh,dx=(1-e)*(k%2?-1300:1300);T(g,String(k+1).padStart(2,'0'),`400 30px ${FONT.mono}`,x0+dx,y+10,A,1,'left');T(g,r[0],`900 ${sz}px ${FONT.serif}`,x0+100+dx,y+52,fg,1,'left');if(r[1])T(g,r[1],`400 26px ${FONT.mono}`,x0+130+textW(r[0],sz)+dx,y+10,PAL.mute,1,'left');
     g.fillStyle=rgb(fg,.25);g.fillRect(x0+dx,y+92,wd,2);const c=eo(P(u-k*.07,.2,.2));if(c>0){g.strokeStyle=rgb(A);g.lineWidth=14;g.lineCap='round';g.lineJoin='round';g.beginPath();const X=x0+wd-120,Y=y+2,a=Math.min(1,c*2.5),b=Math.max(0,(c-.4)/.6);g.moveTo(X,Y);g.lineTo(X+32*a,Y+32*a);if(b>0)g.lineTo(X+32+66*b,Y+32-76*b);g.stroke()}})};
 /* strobe: one full-bleed typographic flash card. u local seconds, k index. */
-FX.strobe=(g,u,k,o)=>{const e=ex(P(u,0,.2)),BG=o.bg,FG=o.fg,sz=o.size||H*.52;fillAll(g,BG);g.save();g.translate(CX,CY);g.rotate((k%2?1:-1)*.04*(1-e));g.translate(-CX,-CY);
+FX.strobe=(g,u,k,o)=>{const e=ex(P(u,0,.2)),BG=o.bg,FG=o.fg,sz=fitSize(o.text,o.size||H*.52,W*.84);fillAll(g,BG);g.save();g.translate(CX,CY);g.rotate((k%2?1:-1)*.04*(1-e));g.translate(-CX,-CY);
   if(o.num)TS(g,o.num,`900 ${H*.94}px ${FONT.serif}`,CX+(k%2?1:-1)*(W*.17+(1-e)*200),H*.83,FG,4,.24);cjk(g,o.text,sz,CX,H*.472,FG,j=>({s:1.28-.28*e}));
   g.fillStyle=rgb(FG);const bw=(W+400)*e;g.fillRect(k%2?W+200-bw:-200,H*.139,bw,10);g.fillRect(k%2?-200:W+200-bw,H*.838,bw,10);if(o.sub)tracked(g,o.sub,`400 30px ${FONT.mono}`,CX,H*.806,26,FG,1);
   const n=o.total||0;for(let j=0;j<n;j++){g.fillStyle=rgb(FG);g.strokeStyle=rgb(FG);g.lineWidth=3;const x=CX-n*26+j*52;if(j<=k)g.fillRect(x,92,32,32);else g.strokeRect(x+1.5,93.5,29,29)}g.restore()};

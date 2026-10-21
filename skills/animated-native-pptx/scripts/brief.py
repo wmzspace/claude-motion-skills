@@ -2,7 +2,8 @@
 """创意方向抽签：每条维度随机抽一项，用来打破"每份 PPT 都长一个样"的惯性。
 用法：python3 brief.py "<主题>" [--seed N] [--n 2]
 抽到的项是起点不是命令：和内容明显冲突可以重抽或改，但要在 design.md 里写明理由。"""
-import argparse, random, time
+import argparse, random, signal, time
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)   # allow `brief.py | head`
 AXES = {
  '美术风格': ['杂志编辑排版', '瑞士网格', '满版摄影', '扁平插画', '纸张拼贴', '极简留白', '复古印刷', '蓝图线稿', '玻璃拟态', '粗野主义大字', '手绘白板', '信息图'],
  '配色策略': ['单色 + 一个强调色', '互补撞色', '黑白 + 一个亮色', '低饱和大地色', '从内容实物/照片取色', '双色调', '高明度粉彩', '深色底 + 高亮'],

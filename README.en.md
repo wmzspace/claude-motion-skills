@@ -43,6 +43,7 @@ Three [Agent Skills](https://docs.claude.com/en/docs/agents-and-tools/agent-skil
 - Starts from a randomized creative brief and the subject's own visual motifs, so shots, camera moves, transitions, palette, type and music are new every time; a "reskin test" catches template reuse before delivery
 - The engine supplies impact, motion blur, bloom, chromatic aberration and drawing parts (draw-on paths, noise, staggering, masks, particle assembly of any shape), plus 20+ adaptable shot recipes
 - Every frame is a pure function of time, so rendering runs in **parallel and can resume** after an interruption; a 2-minute low-fps preview comes with an automatic QA report (shot-length variety, static stretches, brightness/hue rhythm, a sound on every cut)
+- Chinese, English and mixed text all animate glyph by glyph with correct spacing; long English titles are width-fitted and can wrap
 - A small numpy synth builds a soundtrack that hits on every cut, with plucks, saw leads, 808 subs, vinyl noise, modes and drum patterns
 
 ### 📽️ animation-html

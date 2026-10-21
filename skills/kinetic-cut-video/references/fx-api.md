@@ -20,11 +20,14 @@
 
 ## 文字
 
-- `cjk(g, str, size, cx, cy, col, fn, stroke=0, weight=900, family)`：等宽全角字，垂直居中于 `cy`。`fn(j)` 返回每个字的 `{s, sx, sy, rot, shx(剪切), dx, dy, al, col}`；`stroke>0` 画描边。
+- `cjk(g, str, size, cx, cy, col, fn, stroke=0, weight=900, family)`：逐字排版，垂直居中于 `cy`；汉字等全角字按字号等宽，英文、数字按实际字宽，中英混排可直接用。`fn(j)` 返回每个字的 `{s, sx, sy, rot, shx(剪切), dx, dy, al, col}`；`stroke>0` 画描边。
 - `word(g, str, font, cx, baseline, col, fn)`：比例宽度（拉丁）单词，逐字母 `fn`，支点在字母底部中点。
 - `T(g, str, font, x, y, col, al, align)` / `TS(...lw...)`：整串填充 / 描边。
 - `tracked(g, str, font, cx, y, spacing, col, al)`：加字距的居中小字，字距可做收拢动画。
 - `arcText(g, str, font, cx, cy, r, rot, col, al)`：环形文字。
+- `textW(str, size, weight, family)`：`cjk()` 排出来的总宽。`fitSize(str, size, maxW, weight, family)`：不超过 `maxW` 的最大字号。
+- `wrap(str, font, maxW)`：按宽度断行（英文按空格，中文按字），返回行数组。
+- `condensed(g, sx, cx, cy, fn)`：把 `fn()` 画的内容水平压缩，做窄体字。
 - `lay(str, font)`：量出每个字的位置 `{gl:[{ch,x,w}], w}`。
 - `layer(draw)`：返回一张离屏整幅画布，用于 `source-atop` 遮罩、切片故障等。
 
